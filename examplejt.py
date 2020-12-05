@@ -22,7 +22,7 @@ def get_edges_set(graph):
 
 def minfillcost(edges, neighbor_nodes):
     elimination_clique = itertools.combinations(neighbor_nodes, 2)
-    cost = sum([edge not in edges for edge in elimination_clique])
+    cost = sum([(edge not in edges and (edge[1], edge[0]) not in edges) for edge in elimination_clique])
     return cost
 
 
