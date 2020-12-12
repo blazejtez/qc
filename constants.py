@@ -10,7 +10,7 @@ class Constants:
         # open connection to the database
         conn = sqlite3.connect(db)
         c = conn.cursor()
-        # create nautrons and protons masses dictionary
+        # create neutrons and protons masses dictionary
         rows = c.execute('SELECT * FROM MASSES').fetchall()
         self.masses = {}
         for row in rows:
@@ -20,6 +20,8 @@ class Constants:
         self.atomic_masses = {}
         for row in rows:
             self.atomic_masses[row[0]] = row[1]
+        # get van der Wals radi
+        
 
     @property
     def proton_mass(self):
