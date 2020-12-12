@@ -64,3 +64,7 @@ merge = false
 [[custom_plugins]]
 repo = 'roxma/vim-hug-neovim-rpc'
 merge = false
+[[custom_plugins]]
+repo =  'arnoudbuzing/wolfram-vim'
+merge = false
+ 
