@@ -67,4 +67,6 @@ merge = false
 [[custom_plugins]]
 repo =  'arnoudbuzing/wolfram-vim'
 merge = false
- 
+#[[custom_plugins]]
+#repo = 'heavenshell/vim-pydocstring'
+#merge = false
