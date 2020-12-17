@@ -60,7 +60,7 @@ class Raster:
         """
         interval = self._round_interval(interval)
         numh = self._interval_len(interval) * self._density
-        lin = np.linspace(interval.lower, interval.upper, int(numh) + 1)
+        lin = np.linspace(interval.lower, interval.upper, int(numh) + 1, dtype = np.float32)
 
         return lin
 
