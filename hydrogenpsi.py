@@ -5,7 +5,7 @@ import numexpr as ne
 from numpy import arctan2, sqrt
 from sympy import Symbol
 from sympy.abc import r
-from sympy.physics.hydrogen import Psi_nlm, R_nl
+from sympy.physics.hydrogen import Psi_nlm, R_nl, E_nl
 from sympy.utilities.lambdify import lambdify
 
 
@@ -59,17 +59,18 @@ class HydrogenPsi:
         return self.f(r, phi, theta)
 
 
-def cart2sph(x, y, z, ceval=ne.evaluate):
-    """ x, y, z :  ndarray coordinates
-        ceval: backend to use:
-              - eval :  pure Numpy
-              - numexpr.evaluate:  Numexpr """
-    azimuth = ceval('arctan2(y,x)')
-    xy2 = ceval('x**2 + y**2')
-    elevation = ceval('arctan2(z, sqrt(xy2))')
-    r = eval('sqrt(xy2 + z**2)')
-    return azimuth, elevation, r
+class HydrogenEnergy:
+    def __init__(self, n: int):
+        """__init__.
 
+        :param n: principal quantum number
+        :type n: int
+        """
+        self.E = E_nl(n) 
+       
+    def eval(self):
+
+        return self.E
 
 if __name__ == "__main__":
 
@@ -83,3 +84,5 @@ if __name__ == "__main__":
     phi = np.random.randn(2, 2)
     theta = np.random.randn(2, 2)
     print(hpsi.eval(r, phi, theta))
+    he = HydrogenEnergy(2)
+    print(he.eval())

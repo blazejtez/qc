@@ -1,20 +1,37 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import sys
-sys.path.append('./Hydrogen-Radial-Wavefunctions')
-import RadialPsi
-import numpy as np
-from scipy.special import genlaguerre
+import argparse
+import constants
+import raster
+import hydrogenpsi
 
-class RadialHydrogen:
-
-    def __init__(self, n, l):
-        
+def analytical():
+    const = constants.Constants()
+    radius = 
 
 if __name__ == "__main__":
-
-     print(Radial(2,0,1.)) 
-     print(1./(2**.5)*.5*np.exp(-.5))
-     
-
-print(2*np.exp(-1))
+    parser = argparse.ArgumentParser()
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument(
+        "-n",
+        "--numerical",
+        action = "store_true",
+        help="compute hydrogen wavfunctions and energy numericaly")
+    group.add_argument(
+        "-a",
+        "--analytical",
+        action = "store_true",
+        help="compute hydrogen wavefunctions and energy analyticaly")
+    parser.add_argument("principal",
+                        type=int,
+                        choices=[1, 2, 3, 4],
+                        help="principal quantum number",
+                        )
+    parser.add_argument("folder", help="directory to save the 3D drawings of the modules squared of the wavefunctions")
+    args = parser.parse_args()
+    if args.numerical:
+        print("numerical")
+    if args.analytical:
+        print("analytical")
+    print(args.principal)
+    print(args.folder)
