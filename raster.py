@@ -4,7 +4,8 @@
 import portion as P
 import numpy as np
 import math
-
+import Praktyki.cut_box as box
+from typing import Tuple
 
 class Raster:
     """Raster.
@@ -64,7 +65,17 @@ class Raster:
 
         return lin
 
+    def box_linspaces(self, box : box.box3D) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """box_linspace. Computes grid ticks for each axis of the box
 
+        :param box: box defined by x, y, z intervals
+        :type box: box.box3D
+        :rtype: Tuple[np.ndarray, np.ndarray, np.ndarray]
+        """
+        x = self.linspace(box.get_interval_x())
+        y = self.linspace(box.get_interval_y())
+        z = self.linspace(box.get_interval_z())
+        return x, y, z
 if __name__ == "__main__":
 
     r = Raster(15.1)
