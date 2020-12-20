@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 import numexpr as ne
+import sympy
+import mpmath
 from numpy import arctan2, sqrt
 from sympy import Symbol
 from sympy.abc import r
@@ -26,7 +28,7 @@ class HydrogenRadial:
         if l > n - 1:
             raise ValueError("l can't be larger than n-1")
 
-    def eval(self, r: np.ndarray):
+    def evaluate(self, r: np.ndarray):
         return self.f(r)
 
 
@@ -45,9 +47,18 @@ class HydrogenPsi:
         r = Symbol("r", real=True, positive=True)
         phi = Symbol("phi", real=True)
         theta = Symbol("theta", real=True)
-        expr = Psi_nlm(n, l, m, r, phi, theta, 1)
-        print(expr)
-        self.f = lambdify((r, phi, theta), expr, modules='numpy')
+        x = Symbol("x", real=True)
+        y = Symbol("y", real=True)
+        z = Symbol("z", real=True)
+        expr = sympy.Abs(Psi_nlm(n, l, m, r, phi, theta,
+                                 1))**2 * r**2 * sympy.sin(theta)
+        expr = expr.subs(r, sympy.sqrt(x**2 + y**2 + z**2)).subs(
+            phi, sympy.atan2(y, x)).subs(
+                theta, sympy.atan2(
+                    sympy.sqrt(x**2 + y**2), z)) * 1 / sympy.sqrt(
+                        x**2 + y**2) * 1 / sympy.sqrt(x**2 + y**2 + z**2)
+        expr = expr.cancel()
+        self.f = lambdify((x, y, z), expr, modules='numpy')
 
     def _check(self, n: int, l: int, m: int) -> None:
         if l > n - 1:
@@ -55,8 +66,8 @@ class HydrogenPsi:
         if m < -l or m > l:
             raise ValueError("m can't be less than -l and larger than l")
 
-    def eval(self, r, phi, theta):
-        return self.f(r, phi, theta)
+    def evaluate(self, x, y, z):
+        return self.f(x, y, z)
 
 
 class HydrogenEnergy:
@@ -66,23 +77,24 @@ class HydrogenEnergy:
         :param n: principal quantum number
         :type n: int
         """
-        self.E = E_nl(n) 
-       
+        self.E = E_nl(n)
+
     def eval(self):
 
         return self.E
+
 
 if __name__ == "__main__":
 
     print(1. / (2**.5) * .5 * np.exp(-.5))
     rh = HydrogenRadial(1, 0)
-    print(rh.eval(np.asarray([[1., 1.], [1., 1.]])))
+    print(rh.evaluate(np.asarray([[1., 1.], [1., 1.]])))
 
     print(2 * np.exp(-1))
     hpsi = HydrogenPsi(2, 1, 1)
     r = np.random.randn(2, 2)**2
     phi = np.random.randn(2, 2)
     theta = np.random.randn(2, 2)
-    print(hpsi.eval(r, phi, theta))
+    print(hpsi.evaluate(r, phi, theta))
     he = HydrogenEnergy(2)
     print(he.eval())
