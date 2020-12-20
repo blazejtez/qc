@@ -6,27 +6,28 @@ import raster
 import hydrogenpsi
 import portion as P
 import cart2sph
+import time
+import numpy as np
+import Praktyki.cut_box as box
+import contour  
+from typing import Tuple
+from mayavi.mlab import * 
 
+def analytical(quantum_numbers: Tuple, box: box.box3D, raster_density=50):
+    """analytical.
 
-def analytical(n: int, l: int, m: int):
-    """analytical. Computes complex valued Hydrogen wave function for given quantum numbers
-
-    :param n: principal quantum number
-    :type n: int
-    :param l: orbital quantum number
-    :type l: int
-    :param m: magnetic quantum number
-    :type m: int
+    :param quantum_numbers: (n,l,m) - principal, orbital and magnetic quantum numbers
+    :type quantum_numbers: Tuple
+    :param box: 3D box containing the wave function
+    :type box: box.box3D
+    :param raster_density: number of grid points per Bohr radius
     """
-    const = constants.Constants()
-    radius = const.atomic_radii.au('H')
-    r = raster.Raster(250.)
-    x_linspace = r.linspace(P.closed(-radius, radius))
-    cs = cart2sph.Cart2Sph(x_linspace, x_linspace, x_linspace)
-    phi, theta, r = cs.evaluate()
-    psi = hydrogenpsi.HydrogenPsi(n, l, m)
-    psi_data = psi.eval(r,phi,theta)
-    return psi_data
+    r = raster.Raster(raster_density)
+    x_linspace, y_linspace, z_linspace = r.box_linspaces(box)
+    x,y,z = np.meshgrid(x_linspace,y_linspace,z_linspace)
+    psi = hydrogenpsi.HydrogenPsi(*quantum_numbers)
+    psi_data = psi.evaluate(x, y, z)
+    return psi_data, x, y, z
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -47,19 +48,26 @@ if __name__ == "__main__":
         choices=[1, 2, 3, 4],
         help="principal quantum number",
     )
-    parser.add_argument(
-        "folder",
-        help=
-        "directory to save the 3D drawings of the modules squared of the wavefunctions"
-    )
+    #parser.add_argument(
+    #    "folder",
+    #    help=
+    #    "directory to save the 3D drawings of the modules squared of the wavefunctions"
+    #)
     args = parser.parse_args()
-    if args.numerical:
-        print("numerical")
-    if args.analytical:
-        print("analytical")
-    print(args.principal)
-    print(args.folder)
+    
+    n = args.principal
     #plot wavefunction computed analytically
-    if args.analytical:
-        psi = analytical(1,0,0) 
-
+    HYDROGEN_RADIUS = 35.
+    ISOLINE_LEVEL = 80. # in percent of the total mass
+    for l in range(0,n):
+        for m in range(0,l+1):
+            if args.analytical:
+                print(f"Quantum numbers: principal {n}, orbital {l}, magnetic {m}")
+                print("Wait!!!")
+                intvl = P.closed(-HYDROGEN_RADIUS,HYDROGEN_RADIUS)
+                box_ = box.box3D(intvl,intvl,intvl)
+                psi, x, y, z = analytical((n,l,m), box_, raster_density=5)
+                c = contour.Contour(psi)
+                v = c.get_isoline(ISOLINE_LEVEL)
+                contour3d(psi, contours=[v])           
+                show()
