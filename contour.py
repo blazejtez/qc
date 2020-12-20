@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import numpy as np
-
+import matplotlib.pyplot as plt
 
 class Contour:
     """Contour. Class for handling isolines for the volumetric data"""
@@ -22,23 +22,23 @@ class Contour:
         #mx = volume.flatten.max()
         #mn = volume.flatten.min()
 
-        volume_sorted = np.sort(self.volume.flatten())
+        volume_sorted_ = np.sort(self.volume.flatten())
+        x = np.cumsum(volume_sorted_)
 
-        volume_sorted = np.flip(volume_sorted)
-
+        volume_sorted = np.flip(volume_sorted_)
+        y = np.cumsum(volume_sorted)
         volume_cumsum = np.cumsum(volume_sorted)
-
-        volume_cumsum /= np.sum(self.volume.flatten())
+        volume_cumsum /= volume_cumsum[-1]
 
         fraction = percent_of_volume_covered / 100.
 
         insertion_point = np.searchsorted(volume_cumsum, fraction)
-
-        isoline_threshold = .5 * (volume_sorted[insertion_point] +
-                                  volume_sorted[insertion_point - 1])
+        insertion_point_bis = len(volume_cumsum[volume_cumsum<=fraction])
+        aux = np.minimum(insertion_point, len(volume_sorted)-1)
+        isoline_threshold = .5 * (volume_sorted[aux] +
+                                  volume_sorted[aux - 1])
 
         return isoline_threshold
-
 
 if __name__ == "__main__":
 
