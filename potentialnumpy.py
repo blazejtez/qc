@@ -7,7 +7,7 @@ from numba import njit, jit, prange
 
 @jit(nopython=True, parallel=True)
 def _evaluate(x_linspace: np.ndarray, y_linspace: np.ndarray,
-              z_linspace: np.ndarray, Z1: float, Z2: float) -> np.ndarray:
+              z_linspace: np.ndarray, Z1: float, Z2: float, eps: float = 1e-8) -> np.ndarray:
 
     xlen = len(x_linspace)
     ylen = len(y_linspace)
@@ -22,7 +22,7 @@ def _evaluate(x_linspace: np.ndarray, y_linspace: np.ndarray,
             for z in prange(zlen):
                 zval = z_linspace[z]
                 out[x, y,
-                    z] = Z1 * Z2 * 1 / np.sqrt(xval**2 + yval**2 + zval**2)
+                    z] = Z1 * Z2 * 1 / (np.sqrt(xval**2 + yval**2 + zval**2 )+eps)
 
     return out
 
@@ -30,6 +30,13 @@ def _evaluate(x_linspace: np.ndarray, y_linspace: np.ndarray,
 class Potential:
     """Potential. Computes Coulomb potential for a 3D mesh"""
     def __init__(self, Z1: float = 1, Z2: float = 1):
+        """__init__.
+
+        :param Z1: charge of the first particle in atomic units 
+        :type Z1: float
+        :param Z2: charge of the second particla in atomic units
+        :type Z2: float
+        """
         self.Z1 = Z1
         self.Z2 = Z2
 
