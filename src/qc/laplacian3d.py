@@ -6,7 +6,7 @@ import numpy as np
 from typing import Dict
 from numba import jit, prange
 import matplotlib.pyplot as plt
-
+import time
 
 @jit(nopython=True, parallel=True)
 def _eval_laplacian3d_7pts_stencil(cube: np.ndarray, xlen: int, ylen: int,
@@ -264,18 +264,27 @@ if __name__ == "__main__":
 
     st = Stencils3D()
 
-    shape = (4, 4, 4)
+    shape = (1000, 1000, 1000)
 
     lap = Laplacian3D(shape, st.stencil2)
 
     cube = np.random.randn(*shape).astype(np.float32)
-
+    tic = time.time()
     cube_out = lap.matcube(cube)
+    toc = time.time()
+    print(f"time elapsed numpy: {toc-tic}")
 
+    tic = time.time()
     cube_out_numba = lap.matcube_numba(cube)
-    
-    print((cube_out-cube_out_numba)**2)
+    toc = time.time()
+    print(f"time elapsed numba: {toc-tic}")
 
-    plt.plot(cube_out.flatten())
-    plt.plot(cube_out_numba.flatten())
-    plt.show()
+    tic = time.time()
+    cube_out_numba = lap.matcube_numba(cube)
+    toc = time.time()
+    print(f"time elapsed numba: {toc-tic}")
+    #print((cube_out-cube_out_numba)**2)
+
+    #plt.plot(cube_out.flatten())
+    #plt.plot(cube_out_numba.flatten())
+    #plt.show()
