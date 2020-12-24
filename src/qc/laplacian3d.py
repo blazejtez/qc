@@ -3,14 +3,15 @@
 '''Module responsible for the computation of the laplacian of a cube'''
 
 import numpy as np
-from typing import Dict
+from typing import Dict, Tuple
 from numba import jit, prange
 import matplotlib.pyplot as plt
 import time
 
+
 @jit(nopython=True, parallel=True)
 def _eval_laplacian3d_7pts_stencil(cube: np.ndarray, xlen: int, ylen: int,
-                                   zlen: int) -> np.ndarray:
+                                   zlen: int, h3: float) -> np.ndarray:
     cube_out = np.empty_like(cube)
 
     for x in prange(1, xlen - 1):
@@ -192,9 +193,18 @@ def _eval_laplacian3d_7pts_stencil(cube: np.ndarray, xlen: int, ylen: int,
              1] += cube[1, 0, zlen - 1] + cube[0, 1, zlen - 1] + cube[0, 0,
                                                                       zlen - 2]
 
-    cube_out[xlen-1,ylen-1,zlen-1] = -6*cube[xlen-1,ylen-1,zlen-1]
-    cube_out[xlen-1,ylen-1,zlen-1] += cube[xlen-2,ylen-1,zlen-1] + cube[xlen-1,ylen-2,zlen-1] + cube[xlen-1,ylen-1,zlen-2]
+    cube_out[xlen - 1, ylen - 1,
+             zlen - 1] = -6 * cube[xlen - 1, ylen - 1, zlen - 1]
+    cube_out[xlen - 1, ylen - 1, zlen -
+             1] += cube[xlen - 2, ylen - 1, zlen -
+                        1] + cube[xlen - 1, ylen - 2, zlen -
+                                  1] + cube[xlen - 1, ylen - 1, zlen - 2]
 
+    # multiply times the cube of the delta between neighboring grid points
+    for x in prange(xlen):
+        for y in prange(ylen):
+            for z in prange(zlen):
+                cube_out[x, y, z] *= h3
 
     return cube_out
 
@@ -215,21 +225,18 @@ class Stencils3D:
 
 
 class Laplacian3D:
-    def __init__(self, shape: tuple, stencil: Dict[tuple, int], h: float = 1.):
-        self.shape = shape
-        self.shape_np = np.asarray(self.shape)
-        self.stencil = stencil
+    def __init__(self, h: float = 1.):
         self.h3 = h**3
 
-    def matvec(self, vec: np.ndarray) -> np.ndarray:
-        vec = np.reshape(vec, self.shape)
-        vec_out = self.matcube(vec)
-        return np.reshape(vec_out, (np.prod(self.shape_np), 1))
-
-    def matcube(self, cube: np.ndarray) -> np.ndarray:
+    def matcube(self, cube: np.ndarray, stencil: Dict[Tuple[int, int, int],
+                                                      float]) -> np.ndarray:
+        xlen = np.size(cube, 0)
+        ylen = np.size(cube, 1)
+        zlen = np.size(cube, 2)
+        self.shape = (xlen, ylen, zlen)
 
         cube_out = np.zeros(self.shape, dtype=np.float32)
-        for k, v in self.stencil.items():
+        for k, v in stencil.items():
             k_np = np.asarray(k)
             lv = self._lower_vec(k_np)
             uv = self._upper_vec(k_np)
@@ -245,7 +252,7 @@ class Laplacian3D:
         xlen = np.size(cube, 0)
         ylen = np.size(cube, 1)
         zlen = np.size(cube, 2)
-        return _eval_laplacian3d_7pts_stencil(cube, xlen, ylen, zlen)
+        return _eval_laplacian3d_7pts_stencil(cube, xlen, ylen, zlen, self.h3)
 
     def _lower_vec(self, k: np.ndarray):
         return np.maximum(k, np.array([0, 0, 0]))
@@ -266,11 +273,11 @@ if __name__ == "__main__":
 
     shape = (1000, 1000, 1000)
 
-    lap = Laplacian3D(shape, st.stencil2)
+    lap = Laplacian3D(h=0.1)
 
     cube = np.random.randn(*shape).astype(np.float32)
     tic = time.time()
-    cube_out = lap.matcube(cube)
+    cube_out = lap.matcube(cube, st.stencil2)
     toc = time.time()
     print(f"time elapsed numpy: {toc-tic}")
 
