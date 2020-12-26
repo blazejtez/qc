@@ -29,6 +29,8 @@ class HydrogenHamiltonian:
         self.yl = y_linspace
         self.zl = z_linspace
 
+        self.shape = (len(x_linspace), len(y_linspace), len(z_linspace))
+
         hx = self.xl[1] - self.xl[0]
         hy = self.yl[1] - self.yl[0]
         hz = self.zl[1] - self.zl[0]
@@ -46,21 +48,42 @@ class HydrogenHamiltonian:
 
         cube = self.p.operate(cube, self.xl, self.yl, self.zl)
 
-        xlen = np.size(cube,0)
-        ylen = np.size(cube,1)
-        zlen = np.size(cube,2)
-        
-        return _add_cubes_hamiltonian(cube_l,cube,xlen,ylen,zlen)
+        xlen = np.size(cube, 0)
+        ylen = np.size(cube, 1)
+        zlen = np.size(cube, 2)
+
+        return _add_cubes_hamiltonian(cube_l, cube, xlen, ylen, zlen)
+
+    def operate_vec(self, vecs: np.ndarray) -> np.ndarray:
+
+        for i in range(np.size(vecs, 1)):
+
+            tic = time.time()
+            cube = np.reshape(vecs[:, i], self.shape)
+            toc = time.time()
+            print(f"time elapsed reshape: {toc-tic} sec.")
+            tic = time.time()
+            cube = self.operate(cube)
+            toc = time.time()
+            print(f"time elapsed operate: {toc-tic} sec.")
+            tic = time.time()
+            vecs[:, i] = np.reshape(cube, (np.prod(self.shape), ))
+            toc = time.time()
+            print(f"time elapsed reshape: {toc-tic} sec.")
+
+        return vecs
 
 
 if __name__ == "__main__":
 
-    xl = np.linspace(-30, 30, 1001, dtype=np.float32)
+    ln = 1001
+
+    xl = np.linspace(-30, 30, ln, dtype=np.float32)
     yl = xl
     zl = xl
 
     h = HydrogenHamiltonian(xl, yl, zl)
-    cube = np.random.randn(1001, 1001, 1001).astype(np.float32)
+    cube = np.random.randn(ln, ln, ln).astype(np.float32)
     print("start applying Hamiltonian ...")
     tic = time.time()
     cube = h.operate(cube)
@@ -70,5 +93,19 @@ if __name__ == "__main__":
     print("start applying Hamiltonian ...")
     tic = time.time()
     cube = h.operate(cube)
+    toc = time.time()
+    print(f"time elapsed: {toc-tic} sec.")
+
+    vecs = np.random.randn(np.prod((ln, ln, ln)), 3).astype(np.float32)
+    print("start applying Hamiltonian ...")
+    tic = time.time()
+    vecs = h.operate_vec(vecs)
+    toc = time.time()
+    print(f"time elapsed: {toc-tic} sec.")
+
+    vecs = np.random.randn(np.prod((ln, ln, ln)), 3).astype(np.float32)
+    print("start applying Hamiltonian ...")
+    tic = time.time()
+    vecs = h.operate_vec(vecs)
     toc = time.time()
     print(f"time elapsed: {toc-tic} sec.")
