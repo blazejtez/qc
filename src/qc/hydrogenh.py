@@ -23,6 +23,15 @@ def _add_cubes_hamiltonian(c1laplacian: np.ndarray, c2potential: np.ndarray,
 class HydrogenHamiltonian:
     def __init__(self, x_linspace: np.ndarray, y_linspace: np.ndarray,
                  z_linspace: np.ndarray):
+        """__init__.
+
+        :param x_linspace:
+        :type x_linspace: np.ndarray
+        :param y_linspace:
+        :type y_linspace: np.ndarray
+        :param z_linspace:
+        :type z_linspace: np.ndarray
+        """
 
         self.p = Potential()
         self.xl = x_linspace

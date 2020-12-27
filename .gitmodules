@@ -1,0 +1,3 @@
+[submodule "lib/Praktyki"]
+	path = lib/Praktyki
+	url = https://github.com/KolRobOsk/Praktyki.git
