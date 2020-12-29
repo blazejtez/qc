@@ -5,6 +5,7 @@ import numpy as np
 
 from qc.laplacian3d import *
 from qc.potential import *
+import copy
 import time
 from numba import jit, prange
 
@@ -65,22 +66,15 @@ class HydrogenHamiltonian:
 
     def operate_vec(self, vecs: np.ndarray) -> np.ndarray:
 
+        vecs_copy = copy.copy(vecs)
+
         for i in range(np.size(vecs, 1)):
 
-            tic = time.time()
-            cube = np.reshape(vecs[:, i], self.shape)
-            toc = time.time()
-            print(f"time elapsed reshape: {toc-tic} sec.")
-            tic = time.time()
+            cube = np.reshape(vecs_copy[:, i], self.shape)
             cube = self.operate(cube)
-            toc = time.time()
-            print(f"time elapsed operate: {toc-tic} sec.")
-            tic = time.time()
-            vecs[:, i] = np.reshape(cube, (np.prod(self.shape), ))
-            toc = time.time()
-            print(f"time elapsed reshape: {toc-tic} sec.")
+            vecs_copy[:, i] = np.reshape(cube, (np.prod(self.shape), ))
 
-        return vecs
+        return vecs_copy
 
 
 if __name__ == "__main__":
