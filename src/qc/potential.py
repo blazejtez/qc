@@ -30,7 +30,7 @@ def _evaluate(x_linspace: np.ndarray, y_linspace: np.ndarray,
 
 @jit(nopython=True, parallel=True)
 def _operate(cube: np.ndarray, x_linspace: np.ndarray, y_linspace: np.ndarray,
-              z_linspace: np.ndarray, Z1: float, Z2: float, eps: float = 1e-8) -> np.ndarray:
+             z_linspace: np.ndarray, Z1: float, Z2: float, eps: float = 1e-2):
 
     xlen = len(x_linspace)
     ylen = len(y_linspace)
