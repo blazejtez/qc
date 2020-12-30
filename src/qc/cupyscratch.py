@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
+'''experimentation with cupy'''
 import cupy as cp
-import numpy as np
-import time 
-xlen = 1000
-ylen = 6
+#  import numpy as np
+#  import time
+XLEN = 1000
+YLEN = 6
 pool = cp.cuda.MemoryPool(cp.cuda.malloc_managed)
 cp.cuda.set_allocator(pool.malloc)
 start_event = cp.cuda.stream.Event()
@@ -13,8 +13,8 @@ stop_event = cp.cuda.stream.Event()
 stream = cp.cuda.stream.Stream()
 with stream:
     start_event.record()
-    x = cp.random.randn(xlen**3,ylen,dtype=cp.float32)
-    z = cp.transpose(x).dot(x)*xlen**-3.
+    x = cp.random.randn(XLEN**3,YLEN,dtype=cp.float32)
+    z = cp.transpose(x).dot(x)*XLEN**-3.
     stop_event.record()
     stop_event.synchronize()
     print(z)
