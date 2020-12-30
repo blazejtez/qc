@@ -9,7 +9,7 @@ setup(
     author='Marcin Kuropatwińsk',
     author_email='marcin@talking2rabbit.com',
     url='https://www.marcinkuropatwinski.pl',
-    package_dir={'qc': 'src/qc', 'Praktyki': 'lib/Praktyki'},
+    package_dir={'': 'src'},
     packages=['qc','Praktyki'],
 )
 
