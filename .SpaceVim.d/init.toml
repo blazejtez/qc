@@ -50,7 +50,7 @@ name = "debug"
 repo = 'cjrh/vim-conda'
 merge = false
 [[layers]]
-name = 'denite'
+name = 'leaderf'
 [[custom_plugins]]
 repo = 'vim-syntastic/syntastic'
 merge = false
