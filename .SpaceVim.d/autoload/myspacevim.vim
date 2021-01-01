@@ -1,4 +1,6 @@
 function! myspacevim#before() abort
+  let g:jedi#completions_enabled=1
+  let g:deoplete#enable_at_startup = 1
   let g:pydocstring_doq_path='~/.local/bin/doq'
   map <F4> :CondaChangeEnv<CR>
   autocmd BufNewFile,BufRead *.wl set syntax=wl
@@ -7,6 +9,11 @@ function! myspacevim#before() abort
   nnoremap <leader>gd :Gvdiff<CR>
   nnoremap gdh :diffget //2<CR>
   nnoremap gdl :diffget //3<CR>
+  function! s:test_section() abort
+    return 'ok'
+  endfunction
+  call SpaceVim#layers#core#statusline#register_sections('test', function('s:test_section'))
+  " call SpaceVim#layers#disable('autocomplete')
 endfunction
 
 function! myspacevim#after() abort
