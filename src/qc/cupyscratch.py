@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 '''experimentation with cupy'''
-import cupy as cp
-#  import numpy as np
 #  import time
+import cupy as cp
 XLEN = 1000
-YLEN = 6
+YLEN = ZLEN = XLEN
+NUMVECTORS = 1
+NUMBITS = 32
 pool = cp.cuda.MemoryPool(cp.cuda.malloc_managed)
 cp.cuda.set_allocator(pool.malloc)
 start_event = cp.cuda.stream.Event()
@@ -13,8 +14,17 @@ stop_event = cp.cuda.stream.Event()
 stream = cp.cuda.stream.Stream()
 with stream:
     start_event.record()
-    x = cp.random.randn(XLEN**3,YLEN,dtype=cp.float32)
-    z = cp.transpose(x).dot(x)*XLEN**-3.
+    x = cp.random.randn(XLEN * YLEN * ZLEN, NUMVECTORS, dtype=cp.float32)
+    channel_descriptor = cp.cuda.texture.ChannelFormatDescriptor(
+        NUMBITS, 0, 0, 0, cp.cuda.runtime.cudaChannelFormatKindFloat)
+    cuda_array = cp.cuda.texture.CUDAarray(channel_descriptor, XLEN, YLEN,
+                                           ZLEN)
+    x_resaped = cp.reshape(x,(XLEN,YLEN,ZLEN))
+    cuda_array.copy_from(x_resaped)
+    resource_descriptor = cp.cuda.texture.ResourceDescriptor(
+        cp.cuda.runtime.cudaResourceTypeArray, cuda_array)
+    surface_obj = cp.cuda.texture.SurfaceObject(resource_descriptor)
+    z = cp.transpose(x).dot(x) * XLEN**-3.
     stop_event.record()
     stop_event.synchronize()
     print(z)
