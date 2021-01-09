@@ -1,5 +1,7 @@
 **/__pycache__
 **/misc
+**/dist
+**/qc.egg-info 
 *.png
 *.pdf
 *.log
