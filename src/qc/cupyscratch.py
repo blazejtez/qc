@@ -12,11 +12,11 @@ extern "C" __global__ void hamiltonian_3d_kernel(cudaSurfaceObject_t *surface_ou
 }
 ''', 'hamiltonian_3d_kernel')
 test_kernel = cp.RawKernel(r'''
-__global__ void test_kernel(cudaTextureObject_t *texture_input, int XLEN, int YLEN, int ZLEN){
+__global__ void test_kernel(cudaTextureObject_t texture_input, int XLEN, int YLEN, int ZLEN){
     for(int x = 0; x < XLEN; x++){
         for(int y = 0; y < YLEN; y++){
             for(int z = 0; z < ZLEN; z++){
-                printf("%e ", tex3D<float>(*texture_input, (float)x, float(y), float(z)));
+               float value = tex3D<float>(texture_input, (float)x, float(y), float(z));
             }
         }
     }
@@ -72,3 +72,4 @@ with stream:
 #  print(z_cpu)
 #  toc = time.time()
 #  print(f"{toc-tic}")
+
