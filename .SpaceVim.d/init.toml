@@ -76,6 +76,8 @@ git-plugin = "fugitive"
 [[layers]]
 name = "debug"
 [[layers]]
+name = 'tmux'
+[[layers]]
 name = "core#statusline"
 [[custom_plugins]]
 repo = 'cjrh/vim-conda'
