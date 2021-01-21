@@ -58,7 +58,17 @@ class HydrogenPsi:
                     sympy.sqrt(x**2 + y**2), z)) * 1 / sympy.sqrt(
                         x**2 + y**2) * 1 / sympy.sqrt(x**2 + y**2 + z**2)
         expr = expr.cancel()
+
+        expr_cmplx = Psi_nlm(n, l, m, r, phi, theta,
+                             1) * (r**2 * sympy.sin(theta))**(1./2)
+        expr_cmplx = expr_cmplx.subs(r, sympy.sqrt(x**2 + y**2 + z**2)).subs(
+            phi, sympy.atan2(y, x)).subs(
+                theta, sympy.atan2(sympy.sqrt(x**2 + y**2), z)) * (
+                    1 / sympy.sqrt(x**2 + y**2) * 1 /
+                    sympy.sqrt(x**2 + y**2 + z**2))**(1./2)
+        expr_cmplx = expr_cmplx.cancel()
         self.f = lambdify((x, y, z), expr, modules='numpy')
+        self.f_cmplx = lambdify((x, y, z), expr_cmplx, modules='numpy')
 
     def _check(self, n: int, l: int, m: int) -> None:
         if l > n - 1:
@@ -67,7 +77,23 @@ class HydrogenPsi:
             raise ValueError("m can't be less than -l and larger than l")
 
     def evaluate(self, x, y, z):
+        """evaluate.
+
+        :param x: meshgrid for x (as returned by numpy.mgrid)
+        :param y: meshgrid for y
+        :param z: meshgrid for z
+        """
         return self.f(x, y, z)
+
+    def evaluate_complex(self, x, y, z):
+        """evaluate_complex.
+
+        :param x: meshgrid for x (as returned by numpy.mgrid)
+        :param y: meshgrid for y
+        :param z: meshgrid for z
+        """
+        psi = self.f_cmplx(x, y, z)
+        return np.real(psi), np.imag(psi)
 
 
 class HydrogenEnergy:
@@ -86,15 +112,16 @@ class HydrogenEnergy:
 
 if __name__ == "__main__":
 
-    print(1. / (2**.5) * .5 * np.exp(-.5))
     rh = HydrogenRadial(1, 0)
-    print(rh.evaluate(np.asarray([[1., 1.], [1., 1.]])))
 
-    print(2 * np.exp(-1))
     hpsi = HydrogenPsi(2, 1, 1)
-    r = np.random.randn(2, 2)**2
-    phi = np.random.randn(2, 2)
-    theta = np.random.randn(2, 2)
-    print(hpsi.evaluate(r, phi, theta))
+    x = np.random.randn(2, 2)
+    y = np.random.randn(2, 2)
+    z = np.random.randn(2, 2)
+    print(hpsi.evaluate(x, y, z))
+    re, im = hpsi.evaluate_complex(x,y,z)
+    print(re)
+    print(im)
+    print(re**2+im**2)
     he = HydrogenEnergy(2)
     print(he.eval())
