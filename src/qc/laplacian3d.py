@@ -19,19 +19,18 @@ _eval_laplacian3d_7pts_stencil_kernel = cp.RawKernel(
     int idx_x = threadIdx.x + blockIdx.x * blockDim.x;
     int idx_y = threadIdx.y + blockIdx.y * blockDim.y;
     int idx_z = threadIdx.z + blockIdx.z * blockDim.z;
-    if(idx_x < XLEN && idx_y < YLEN && idx_z < ZLEN){
-        float value = -tex3D<float>(texture_input, (float)idx_x, (float)idx_y, (float)idx_z)*6 + \ 
-        tex3D<float>(texture_input, (float)idx_x - 1, (float)idx_y, (float)idx_z) + \ 
+    float value = 0;
+    if((idx_x < XLEN) && (idx_y < YLEN) && (idx_z < ZLEN)){
+        value = -tex3D<float>(texture_input, (float)idx_x, (float)idx_y, (float)idx_z)*6 + \
+        tex3D<float>(texture_input, (float)idx_x - 1, (float)idx_y, (float)idx_z) + \
         tex3D<float>(texture_input, (float)idx_x + 1, (float)idx_y, (float)idx_z) + \
         tex3D<float>(texture_input, (float)idx_x, (float)idx_y - 1, (float)idx_z) + \
         tex3D<float>(texture_input, (float)idx_x, (float)idx_y + 1, (float)idx_z) + \
         tex3D<float>(texture_input, (float)idx_x, (float)idx_y, (float)idx_z - 1) + \
         tex3D<float>(texture_input, (float)idx_x, (float)idx_y, (float)idx_z + 1);
-        printf("%f ", value);
-        value *= 2;
-        surf3Dwrite<float>(value*h3,surface_output,idx_x*sizeof(float),idx_y,idx_z);
+        value *= h3;
+        surf3Dwrite<float>(value, surface_output,idx_x*sizeof(float),idx_y,idx_z);
     }
-    printf("\n");
                                  }''',
     'test',
     backend='nvcc')
@@ -290,9 +289,9 @@ class Laplacian3D:
         ylen = texture.ResDesc.cuArr.height
         zlen = texture.ResDesc.cuArr.depth
         _eval_laplacian3d_7pts_stencil_kernel(
-            (np.ceil(xlen/Laplacian3D.BLOCKSIZE),
-             np.ceil(ylen/Laplacian3D.BLOCKSIZE), 
-             np.ceil(zlen/Laplacian3D.BLOCKSIZE) ), 
+            (np.int32(np.ceil(xlen/Laplacian3D.BLOCKSIZE)),
+             np.int32(np.ceil(ylen/Laplacian3D.BLOCKSIZE)), 
+             np.int32(np.ceil(zlen/Laplacian3D.BLOCKSIZE)) ), 
             (Laplacian3D.BLOCKSIZE,Laplacian3D.BLOCKSIZE,Laplacian3D.BLOCKSIZE ), (
             texture,
             surface,
