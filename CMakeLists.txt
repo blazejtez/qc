@@ -1,0 +1,23 @@
+cmake_minimum_required(VERSION 3.19.2)
+set(CMAKE_CUDA_ARCHITECTURES 75)
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+project(qc LANGUAGES CXX CUDA)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/src/qc")
+set(SOURCE_DIR "${PROJECT_SOURCE_DIR}/src/qcpp")
+add_subdirectory("${PROJECT_SOURCE_DIR}/lib/pybind11")
+find_package(Python3 COMPONENTS Interpreter Development)
+message("${Python3_INCLUDE_DIRS}")
+include_directories(${Python3_INCLUDE_DIRS}
+  ${PROJECT_SOURCE_DIR}/lib/pybind11/include ${SOURCE_DIR})
+link_directories(/usr/local/cuda/lib64)
+set(SOURCES "${SOURCE_DIR}/math.cpp" "${SOURCE_DIR}/bindings.cpp")
+set(SOURCES_TEXTURE "${SOURCE_DIR}/texturebindings.cu" "${SOURCE_DIR}/texturekernels.cu")
+add_library(simple_math SHARED ${SOURCES})
+add_library(texture SHARED ${SOURCES_TEXTURE})
+target_link_libraries(simple_math ${Python3_LIBRARIES})
+target_link_libraries(texture ${Python3_LIBRARIES})
+set_target_properties(simple_math PROPERTIES PREFIX "")
+set_target_properties(texture PROPERTIES PREFIX "" CUDA_SEPARABLE_COMPILATION ON)
+
+
