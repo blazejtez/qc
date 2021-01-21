@@ -2,12 +2,39 @@
 # -*- coding: utf-8 -*-
 '''Module responsible for the computation of the laplacian of a cube'''
 
-import numpy as np
-from typing import Dict, Tuple
-from numba import jit, prange
-import matplotlib.pyplot as plt
 import time
+from typing import Dict, Tuple
 
+import cupy as cp
+import matplotlib.pyplot as plt
+import numpy as np
+from numba import jit, prange
+import qc.surface as S
+import qc.texture as T
+
+_eval_laplacian3d_7pts_stencil_kernel = cp.RawKernel(
+    r'''extern "C" __global__ void test(cudaTextureObject_t texture_input,
+                                        cudaSurfaceObject_t surface_output, int XLEN, int YLEN, int ZLEN,
+                                        float h3){
+    int idx_x = threadIdx.x + blockIdx.x * blockDim.x;
+    int idx_y = threadIdx.y + blockIdx.y * blockDim.y;
+    int idx_z = threadIdx.z + blockIdx.z * blockDim.z;
+    if(idx_x < XLEN && idx_y < YLEN && idx_z < ZLEN){
+        float value = -tex3D<float>(texture_input, (float)idx_x, (float)idx_y, (float)idx_z)*6 + \ 
+        tex3D<float>(texture_input, (float)idx_x - 1, (float)idx_y, (float)idx_z) + \ 
+        tex3D<float>(texture_input, (float)idx_x + 1, (float)idx_y, (float)idx_z) + \
+        tex3D<float>(texture_input, (float)idx_x, (float)idx_y - 1, (float)idx_z) + \
+        tex3D<float>(texture_input, (float)idx_x, (float)idx_y + 1, (float)idx_z) + \
+        tex3D<float>(texture_input, (float)idx_x, (float)idx_y, (float)idx_z - 1) + \
+        tex3D<float>(texture_input, (float)idx_x, (float)idx_y, (float)idx_z + 1);
+        printf("%f ", value);
+        value *= 2;
+        surf3Dwrite<float>(value*h3,surface_output,idx_x*sizeof(float),idx_y,idx_z);
+    }
+    printf("\n");
+                                 }''',
+    'test',
+    backend='nvcc')
 
 @jit(nopython=True, parallel=True)
 def _eval_laplacian3d_7pts_stencil(cube: np.ndarray, xlen: int, ylen: int,
@@ -213,7 +240,7 @@ class Stencils3D:
     """Stencils3D."""
     def __init__(self):
 
-        self.stencil2 = {
+        self.stencil7pts = {
             (0, 0, 0): -6,
             (-1, 0, 0): 1,
             (1, 0, 0): 1,
@@ -225,8 +252,12 @@ class Stencils3D:
 
 
 class Laplacian3D:
+    BLOCKSIZE = 64 
     def __init__(self, h: float = 1.):
         self.h3 = h**3
+
+        _eval_laplacian3d_7pts_stencil_kernel.compile()
+
 
     def matcube(self, cube: np.ndarray, stencil: Dict[Tuple[int, int, int],
                                                       float]) -> np.ndarray:
@@ -254,6 +285,24 @@ class Laplacian3D:
         zlen = np.size(cube, 2)
         return _eval_laplacian3d_7pts_stencil(cube, xlen, ylen, zlen, self.h3)
 
+    def matcube_cupy(self, texture, surface):
+        xlen = texture.ResDesc.cuArr.width 
+        ylen = texture.ResDesc.cuArr.height
+        zlen = texture.ResDesc.cuArr.depth
+        _eval_laplacian3d_7pts_stencil_kernel(
+            (np.ceil(xlen/Laplacian3D.BLOCKSIZE),
+             np.ceil(ylen/Laplacian3D.BLOCKSIZE), 
+             np.ceil(zlen/Laplacian3D.BLOCKSIZE) ), 
+            (Laplacian3D.BLOCKSIZE,Laplacian3D.BLOCKSIZE,Laplacian3D.BLOCKSIZE ), (
+            texture,
+            surface,
+            xlen,
+            xlen,
+            zlen,
+            self.h3
+        ))
+        pass
+
     def _lower_vec(self, k: np.ndarray):
         return np.maximum(k, np.array([0, 0, 0]))
 
@@ -277,7 +326,7 @@ if __name__ == "__main__":
 
     cube = np.random.randn(*shape).astype(np.float32)
     tic = time.time()
-    cube_out = lap.matcube(cube, st.stencil2)
+    cube_out = lap.matcube(cube, st.stencil7pts)
     toc = time.time()
     print(f"time elapsed numpy: {toc-tic}")
 
@@ -291,7 +340,17 @@ if __name__ == "__main__":
     toc = time.time()
     print(f"time elapsed numba: {toc-tic}")
     #print((cube_out-cube_out_numba)**2)
-
+    start_event = cp.cuda.stream.Event()
+    stop_event = cp.cuda.stream.Event()
+    stream = cp.cuda.stream.Stream()
+    tex_obj = T.Texture(1000,1000,1000)
+    sur_obj = S.Surface(1000,1000,1000)
+    init_tex = tex_obj.initial_texture()
+    init_sur = sur_obj.initial_surface()
+    lap.matcube_cupy(init_tex, init_sur)
+    stop_event.record()
+    stop_event.synchronize()
+    print(cp.cuda.stream.get_elapsed_time(start_event,stop_event))
     #plt.plot(cube_out.flatten())
     #plt.plot(cube_out_numba.flatten())
     #plt.show()
