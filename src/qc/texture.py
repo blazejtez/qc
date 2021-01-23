@@ -22,33 +22,10 @@ class Texture:
                                            Texture.NUMVECTORS,
                                            dtype=cp.float32)
 
-        channel_descriptor_input = cp.cuda.texture.ChannelFormatDescriptor(
-            Texture.NUMBITS, 0, 0, 0, cp.cuda.runtime.cudaChannelFormatKindFloat)
+        x_reshaped = cp.reshape(x_initial_vector,(self.x_len,self.y_len,self.z_len))
 
-        cuda_array_input = cp.cuda.texture.CUDAarray(channel_descriptor_input,
-                                                     self.x_len, self.y_len,
-                                                     self.z_len)
+        return self.texture_from_ndarray(x_reshaped)
 
-        x_reshaped = cp.reshape(x_initial_vector,
-                                (self.x_len, self.y_len, self.z_len))
-
-        cuda_array_input.copy_from(x_reshaped)
-
-        resource_descriptor_input = cp.cuda.texture.ResourceDescriptor(
-            cp.cuda.runtime.cudaResourceTypeArray, cuda_array_input)
-
-        # create texture input object
-        self.texture_descriptor = cp.cuda.texture.TextureDescriptor(
-            [
-                cp.cuda.runtime.cudaAddressModeBorder,
-                cp.cuda.runtime.cudaAddressModeBorder,
-                cp.cuda.runtime.cudaAddressModeBorder
-            ], cp.cuda.runtime.cudaFilterModePoint,
-            cp.cuda.runtime.cudaReadModeElementType)
-        texture_obj = cp.cuda.texture.TextureObject(resource_descriptor_input,
-                                                    self.texture_descriptor)
-
-        return texture_obj
 
     def texture_from_surface(self, surface_obj):
         """texture_from_surface.
@@ -60,6 +37,37 @@ class Texture:
             cp.cuda.runtime.cudaResourceTypeArray, cuda_array)
 
         texture_obj = cp.cuda.texture.TextureObject(resource_descriptor,
+                                                    self.texture_descriptor)
+
+        return texture_obj
+
+    def texture_from_ndarray(self, array):
+
+        array = cp.asarray(array) # to make the array a cupy array if it is numpy array
+
+         #  array = cp.transpose(array)
+
+        channel_descriptor_input = cp.cuda.texture.ChannelFormatDescriptor(
+            Texture.NUMBITS, 0, 0, 0, cp.cuda.runtime.cudaChannelFormatKindFloat)
+
+        cuda_array_input = cp.cuda.texture.CUDAarray(channel_descriptor_input,
+                                                     self.x_len, self.y_len,
+                                                     self.z_len)
+
+        cuda_array_input.copy_from(array)
+
+        resource_descriptor_input = cp.cuda.texture.ResourceDescriptor(
+            cp.cuda.runtime.cudaResourceTypeArray, cuda_array_input)
+
+        # create texture input object
+        self.texture_descriptor = cp.cuda.texture.TextureDescriptor(
+            [
+                cp.cuda.runtime.cudaAddressModeWrap,
+                cp.cuda.runtime.cudaAddressModeWrap,
+                cp.cuda.runtime.cudaAddressModeWrap
+            ], cp.cuda.runtime.cudaFilterModePoint,
+            cp.cuda.runtime.cudaReadModeElementType)
+        texture_obj = cp.cuda.texture.TextureObject(resource_descriptor_input,
                                                     self.texture_descriptor)
 
         return texture_obj
