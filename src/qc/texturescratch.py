@@ -98,7 +98,7 @@ if __name__ == "__main__":
             #  ))
             #
             h3 = 0.2;
-            test_kernel_parallel_full((np.int(np.ceil(1000./64)),np.int(np.ceil(1000./64)),np.int(np.ceil(1000./64))),(64,64,64), (init_tex, init_sur, XLEN, YLEN, ZLEN, h3))
+            test_kernel_parallel_full((64,64,64),(16,8,8), (init_tex, init_sur, XLEN, YLEN, ZLEN, h3))
 
             init_tex = tex_obj.texture_from_surface(init_sur)
             y = sur_obj.get_data(init_sur) 
