@@ -22,24 +22,23 @@ _eval_laplacian3d_7pts_stencil_kernel = cp.RawKernel(
     float value = 0;
     if((idx_x < XLEN) && (idx_y < YLEN) && (idx_z < ZLEN)){
         value = -tex3D<float>(texture_input, (float)idx_x, (float)idx_y, (float)idx_z)*6 + \
-        tex3D<float>(texture_input, (float)idx_x - 1, (float)idx_y, (float)idx_z) + \
-        tex3D<float>(texture_input, (float)idx_x + 1, (float)idx_y, (float)idx_z) + \
-        tex3D<float>(texture_input, (float)idx_x, (float)idx_y - 1, (float)idx_z) + \
-        tex3D<float>(texture_input, (float)idx_x, (float)idx_y + 1, (float)idx_z) + \
-        tex3D<float>(texture_input, (float)idx_x, (float)idx_y, (float)idx_z - 1) + \
-        tex3D<float>(texture_input, (float)idx_x, (float)idx_y, (float)idx_z + 1);
-        value *= h3;
+        (idx_x == 0 ? 0 : tex3D<float>(texture_input, (float)idx_x - 1, (float)idx_y, (float)idx_z)) + \
+        (idx_x == XLEN-1 ? 0 : tex3D<float>(texture_input, (float)idx_x + 1, (float)idx_y, (float)idx_z)) + \
+        (idx_y == 0 ? 0 : tex3D<float>(texture_input, (float)idx_x, (float)idx_y - 1, (float)idx_z)) + \
+        (idx_y == YLEN-1 ? 0 : tex3D<float>(texture_input, (float)idx_x, (float)idx_y + 1, (float)idx_z)) + \
+        (idx_z == 0 ? 0 : tex3D<float>(texture_input, (float)idx_x, (float)idx_y, (float)idx_z - 1)) + \
+        (idx_z == ZLEN -1 ? 0 : tex3D<float>(texture_input, (float)idx_x, (float)idx_y, (float)idx_z + 1));
+        //value *= h3;
         surf3Dwrite<float>(value, surface_output,idx_x*sizeof(float),idx_y,idx_z);
     }
                                  }''',
     'test',
     backend='nvcc')
 
-@jit(nopython=True, parallel=True)
+@jit(nopython=False, parallel=True)
 def _eval_laplacian3d_7pts_stencil(cube: np.ndarray, xlen: int, ylen: int,
                                    zlen: int, h3: float) -> np.ndarray:
     cube_out = np.empty_like(cube)
-
     for x in prange(1, xlen - 1):
         for y in prange(1, ylen - 1):
             for z in prange(1, zlen - 1):
@@ -251,7 +250,7 @@ class Stencils3D:
 
 
 class Laplacian3D:
-    BLOCKSIZE = 64 
+    BLOCKSIZE = 8
     def __init__(self, h: float = 1.):
         self.h3 = h**3
 
@@ -289,9 +288,9 @@ class Laplacian3D:
         ylen = texture.ResDesc.cuArr.height
         zlen = texture.ResDesc.cuArr.depth
         _eval_laplacian3d_7pts_stencil_kernel(
-            (np.int32(np.ceil(xlen/Laplacian3D.BLOCKSIZE)),
-             np.int32(np.ceil(ylen/Laplacian3D.BLOCKSIZE)), 
-             np.int32(np.ceil(zlen/Laplacian3D.BLOCKSIZE)) ), 
+            (np.int32(np.ceil(float(xlen)/Laplacian3D.BLOCKSIZE)),
+             np.int32(np.ceil(float(ylen)/Laplacian3D.BLOCKSIZE)), 
+             np.int32(np.ceil(float(zlen)/Laplacian3D.BLOCKSIZE)) ), 
             (Laplacian3D.BLOCKSIZE,Laplacian3D.BLOCKSIZE,Laplacian3D.BLOCKSIZE ), (
             texture,
             surface,
@@ -300,8 +299,8 @@ class Laplacian3D:
             zlen,
             self.h3
         ))
-        pass
-
+        return surface
+    
     def _lower_vec(self, k: np.ndarray):
         return np.maximum(k, np.array([0, 0, 0]))
 
@@ -346,10 +345,12 @@ if __name__ == "__main__":
     sur_obj = S.Surface(1000,1000,1000)
     init_tex = tex_obj.initial_texture()
     init_sur = sur_obj.initial_surface()
-    lap.matcube_cupy(init_tex, init_sur)
-    stop_event.record()
-    stop_event.synchronize()
-    print(cp.cuda.stream.get_elapsed_time(start_event,stop_event))
+    with stream:
+        start_event.record()
+        lap.matcube_cupy(init_tex, init_sur)
+        stop_event.record()
+        stop_event.synchronize()
+        print(f"time elapsed cuda: {cp.cuda.stream.get_elapsed_time(start_event,stop_event)*1e-3}")
     #plt.plot(cube_out.flatten())
     #plt.plot(cube_out_numba.flatten())
     #plt.show()
