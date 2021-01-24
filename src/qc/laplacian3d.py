@@ -15,7 +15,7 @@ import qc.texture as T
 _eval_laplacian3d_7pts_stencil_kernel = cp.RawKernel(
     r'''extern "C" __global__ void test(cudaTextureObject_t texture_input,
                                         cudaSurfaceObject_t surface_output, int XLEN, int YLEN, int ZLEN,
-                                        float h3){
+                                        float h){
     int idx_x = threadIdx.x + blockIdx.x * blockDim.x;
     int idx_y = threadIdx.y + blockIdx.y * blockDim.y;
     int idx_z = threadIdx.z + blockIdx.z * blockDim.z;
@@ -28,7 +28,7 @@ _eval_laplacian3d_7pts_stencil_kernel = cp.RawKernel(
         (idx_y == YLEN-1 ? 0 : tex3D<float>(texture_input, (float)idx_x, (float)idx_y + 1, (float)idx_z)) + \
         (idx_z == 0 ? 0 : tex3D<float>(texture_input, (float)idx_x, (float)idx_y, (float)idx_z - 1)) + \
         (idx_z == ZLEN -1 ? 0 : tex3D<float>(texture_input, (float)idx_x, (float)idx_y, (float)idx_z + 1));
-        //value *= h3;
+        value *= h;
         surf3Dwrite<float>(value, surface_output,idx_x*sizeof(float),idx_y,idx_z);
     }
                                  }''',
@@ -252,7 +252,7 @@ class Stencils3D:
 class Laplacian3D:
     BLOCKSIZE = 8
     def __init__(self, h: float = 1.):
-        self.h3 = h**3
+        self.h = h
 
         _eval_laplacian3d_7pts_stencil_kernel.compile()
 
@@ -273,7 +273,7 @@ class Laplacian3D:
             uvo = self._upper_vec_out(k_np)
             cube_out[lvo[0]:uvo[0], lvo[1]:uvo[1],
                      lvo[2]:uvo[2]] += v * cube[lv[0]:uv[0], lv[1]:uv[1],
-                                                lv[2]:uv[2]] * self.h3
+                                                lv[2]:uv[2]] * self.h
 
         return cube_out
 
@@ -281,7 +281,7 @@ class Laplacian3D:
         xlen = np.size(cube, 0)
         ylen = np.size(cube, 1)
         zlen = np.size(cube, 2)
-        return _eval_laplacian3d_7pts_stencil(cube, xlen, ylen, zlen, self.h3)
+        return _eval_laplacian3d_7pts_stencil(cube, xlen, ylen, zlen, self.h)
 
     def matcube_cupy(self, texture, surface):
         xlen = texture.ResDesc.cuArr.width 
@@ -297,10 +297,10 @@ class Laplacian3D:
             xlen,
             xlen,
             zlen,
-            self.h3
+            np.float32(self.h)
         ))
         return surface
-    
+
     def _lower_vec(self, k: np.ndarray):
         return np.maximum(k, np.array([0, 0, 0]))
 
