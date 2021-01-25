@@ -17,7 +17,7 @@ _eval_potential_kernel = cp.RawKernel(
     int idx_z = threadIdx.z + blockIdx.z * blockDim.z;
     float value = 0;
     float aux = 0;
-    #define BLOCKSIZE 8
+    #define BLOCKSIZE 8 //have be same like the Potential.BLOCKSIZE class atribute
     __shared__ float xls[BLOCKSIZE];
     __shared__ float yls[BLOCKSIZE];
     __shared__ float zls[BLOCKSIZE];
@@ -27,8 +27,8 @@ _eval_potential_kernel = cp.RawKernel(
         zls[threadIdx.z] = zl[idx_z];
         value = tex3D<float>(texture_input, (float)idx_x, (float)idx_y, (float)idx_z);
         aux = xls[threadIdx.x]*xls[threadIdx.x] + yls[threadIdx.y]*yls[threadIdx.y] + zls[threadIdx.z]*zls[threadIdx.z];
-        aux = __frsqrt_rn(aux < eps ? eps : aux);
-        value *= Z1 * Z2 * aux;
+        aux = Z1 * Z2 *__frsqrt_rn(aux < eps ? eps : aux);
+        value *= aux;
         surf3Dwrite<float>(value, surface_output,idx_x*sizeof(float),idx_y,idx_z);
     }
                                  }''',
@@ -59,11 +59,13 @@ def _evaluate(x_linspace: np.ndarray, y_linspace: np.ndarray,
 
 @jit(nopython=True, parallel=True)
 def _operate(cube: np.ndarray, x_linspace: np.ndarray, y_linspace: np.ndarray,
-             z_linspace: np.ndarray, Z1: float, Z2: float, eps: float = 1e-2):
+             z_linspace: np.ndarray, Z1: float, Z2: float, eps: float = 1e-4):
 
     xlen = len(x_linspace)
     ylen = len(y_linspace)
     zlen = len(z_linspace)
+
+    cube_out = np.empty_like(cube)
 
     for x in prange(xlen):
         xval = x_linspace[x]
@@ -74,12 +76,13 @@ def _operate(cube: np.ndarray, x_linspace: np.ndarray, y_linspace: np.ndarray,
             for z in prange(zlen):
                 zval = z_linspace[z]
                 x2y2z2 = x2y2+zval**2
-                cube[x, y,
-                    z] *= Z1 * Z2 * 1 / max(np.sqrt(x2y2z2),eps) 
+                val = cube[x, y, z]  * Z1 * Z2 * 1 / np.sqrt(max(x2y2z2,eps))
+                cube_out[x,y,z] = val
 
-    return cube
+    return cube_out
 class Potential:
     BLOCKSIZE = 8    
+    eps = 1e-4
     """Potential. Computes Coulomb potential for a 3D mesh"""
     def __init__(self, Q1: float = 1, Q2: float = 1):
         """__init__.
@@ -102,9 +105,9 @@ class Potential:
         assert(np.size(cube,0) == len(xl))
         assert(np.size(cube,1) == len(yl))
         assert(np.size(cube,2) == len(zl))
+        cube_out = _operate(cube, xl,yl, zl, self.Q1, self.Q2, Potential.eps)
 
-        return _operate(cube, xl,yl, zl, self.Q1, self.Q2)
-
+        return cube_out 
     def operate_cupy(self, texture, surface, xl, yl, zl):
         
         xlen = texture.ResDesc.cuArr.width 
@@ -126,9 +129,9 @@ class Potential:
             xlen,
             xlen,
             zlen,
-            self.Q1,
-            self.Q2,
-            1e-4
+            np.float64(self.Q1),
+            np.float64(self.Q2),
+            np.float64(Potential.eps)
         ))
         return surface
 
