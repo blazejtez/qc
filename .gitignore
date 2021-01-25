@@ -2,8 +2,8 @@
 **/misc
 **/dist
 **/build
-**/Praktyki
-**/qcpp
+**/src/Praktyki
+**/src/qcpp
 **/qc.egg-info 
 *.png
 *.pdf
