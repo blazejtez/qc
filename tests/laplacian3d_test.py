@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 import qc.texture as T
-import qc.surface as T
+import qc.surface as S
 from qc.laplacian3d import *
 
 
@@ -19,12 +19,6 @@ class MainTest(unittest.TestCase):
         np.random.seed(0)
         cube = np.random.randn(*shape).astype(np.float32)
 
-        #  cube = np.transpose(cube)
-         
-        #  for x in range(shape[0]):
-            #  for y in range(shape[1]):
-                #  for z in range(shape[2]):
-                    #  print(f"{x}, {y}, {z} = {cube[x,y,z]} ")
         cube_out = lap.matcube(cube, s.stencil7pts)
 
         cube_out_numba = lap.matcube_numba(cube)
