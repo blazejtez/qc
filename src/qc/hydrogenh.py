@@ -1,27 +1,70 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import copy
+import time
+
+import cupy as cp
 import numpy as np
+from numba import jit, prange
 
 from qc.laplacian3d import *
 from qc.potential import *
-import copy
-import time
-from numba import jit, prange
+
+_eval_hamiltonian_unperturbed_kernel = cp.RawKernel(
+    r'''extern "C" __global__ void hamiltonian(cudaTextureObject_t texture_input,
+                                        cudaSurfaceObject_t surface_output, float *xl, float *yl, float *zl, 
+                                        int XLEN, int YLEN, int ZLEN, double Z1, double Z2, double eps, double h) {
+    int idx_x = threadIdx.x + blockIdx.x * blockDim.x;
+    int idx_y = threadIdx.y + blockIdx.y * blockDim.y;
+    int idx_z = threadIdx.z + blockIdx.z * blockDim.z;
+    float value = 0;
+    float aux = 0;
+    float aux1 = 0;
+    float aux2 = 0;
+    //#define BLOCKSIZE 8 //have be same like the HydrogenHamiltonian.BLOCKSIZE class atribute
+    //__shared__ float xls[BLOCKSIZE];
+    //__shared__ float yls[BLOCKSIZE];
+    //__shared__ float zls[BLOCKSIZE];
+
+    if((idx_x < XLEN) && (idx_y < YLEN) && (idx_z < ZLEN)){
+        //xls[threadIdx.x] = xl[idx_x];
+        //yls[threadIdx.y] = yl[idx_y];
+        //zls[threadIdx.z] = zl[idx_z];
+        value = tex3D<float>(texture_input, (float)idx_x, (float)idx_y, (float)idx_z);
+        aux = -6*value +\
+        (idx_x == 0 ? 0 : tex3D<float>(texture_input, (float)idx_x - 1, (float)idx_y, (float)idx_z)) + \
+        (idx_x == XLEN-1 ? 0 : tex3D<float>(texture_input, (float)idx_x + 1, (float)idx_y, (float)idx_z)) + \
+        (idx_y == 0 ? 0 : tex3D<float>(texture_input, (float)idx_x, (float)idx_y - 1, (float)idx_z)) + \
+        (idx_y == YLEN-1 ? 0 : tex3D<float>(texture_input, (float)idx_x, (float)idx_y + 1, (float)idx_z)) + \
+        (idx_z == 0 ? 0 : tex3D<float>(texture_input, (float)idx_x, (float)idx_y, (float)idx_z - 1)) + \
+        (idx_z == ZLEN -1 ? 0 : tex3D<float>(texture_input, (float)idx_x, (float)idx_y, (float)idx_z + 1));
+        aux *= h;
+        aux1 = xl[idx_x]*xl[idx_x] + yl[idx_y]*yl[idx_y] + zl[idx_z]*zl[idx_z];
+        aux2 = Z1 * Z2 *__frsqrt_rn(aux1 < eps ? eps : aux1);
+        value = value * aux2 - 0.5 * aux;
+        surf3Dwrite<float>(value, surface_output,idx_x*sizeof(float),idx_y,idx_z);
+    }
+    }''',
+    'hamiltonian',
+    backend='nvcc')
 
 
 @jit(nopython=True, parallel=True)
 def _add_cubes_hamiltonian(c1laplacian: np.ndarray, c2potential: np.ndarray,
                            xlen: int, ylen: int, zlen: int):
+    out = np.empty_like(c1laplacian)
     for x in prange(xlen):
         for y in prange(ylen):
             for z in prange(zlen):
-                c2potential[x, y, z] -= .5 * c1laplacian[x, y, z]
+                out[x, y, z] = c2potential[x, y, z] - .5 * c1laplacian[x, y, z]
 
-    return c2potential
+    return out
 
 
 class HydrogenHamiltonian:
+    BLOCKSIZE = 8
+    eps = 1e-4
     def __init__(self, x_linspace: np.ndarray, y_linspace: np.ndarray,
                  z_linspace: np.ndarray):
         """__init__.
@@ -44,25 +87,27 @@ class HydrogenHamiltonian:
         hx = self.xl[1] - self.xl[0]
         hy = self.yl[1] - self.yl[0]
         hz = self.zl[1] - self.zl[0]
-
+        self.h = hx**(-1)
         # check if the grid cell is cubic
         assert (abs(hy - hx) < 1e-7)
         assert (abs(hz - hx) < 1e-7)
         assert (abs(hz - hy) < 1e-7)
 
-        self.l = Laplacian3D(h=hx)
+        self.l = Laplacian3D(h=self.h)
+
+        _eval_hamiltonian_unperturbed_kernel.compile()
 
     def operate(self, cube: np.ndarray) -> np.ndarray:
 
         cube_l = self.l.matcube_numba(cube)
 
-        cube = self.p.operate(cube, self.xl, self.yl, self.zl)
+        cube_p = self.p.operate(cube, self.xl, self.yl, self.zl)
 
         xlen = np.size(cube, 0)
         ylen = np.size(cube, 1)
         zlen = np.size(cube, 2)
 
-        return _add_cubes_hamiltonian(cube_l, cube, xlen, ylen, zlen)
+        return _add_cubes_hamiltonian(cube_l, cube_p, xlen, ylen, zlen)
 
     def operate_vec(self, vecs: np.ndarray) -> np.ndarray:
 
@@ -75,6 +120,24 @@ class HydrogenHamiltonian:
             vecs_copy[:, i] = np.reshape(cube, (np.prod(self.shape), ))
 
         return vecs_copy
+
+    def operate_unperturbed_cupy(self, texture, surface, Q1, Q2):
+
+        xlen = texture.ResDesc.cuArr.width
+        ylen = texture.ResDesc.cuArr.height
+        zlen = texture.ResDesc.cuArr.depth
+        xl = cp.asarray(self.xl, dtype=cp.float32)
+        yl = cp.asarray(self.yl, dtype=cp.float32)
+        zl = cp.asarray(self.zl, dtype=cp.float32)
+        _eval_hamiltonian_unperturbed_kernel(
+            (np.int32(np.ceil(float(xlen) / HydrogenHamiltonian.BLOCKSIZE)),
+             np.int32(np.ceil(float(ylen) / HydrogenHamiltonian.BLOCKSIZE)),
+             np.int32(np.ceil(float(zlen) / HydrogenHamiltonian.BLOCKSIZE))),
+            (HydrogenHamiltonian.BLOCKSIZE, HydrogenHamiltonian.BLOCKSIZE,
+             HydrogenHamiltonian.BLOCKSIZE),
+            (texture, surface, xl, yl, zl, xlen, xlen, zlen, np.float64(Q1), np.float64(Q2), HydrogenHamiltonian.eps, np.float64(
+                self.h)))
+        return surface
 
 
 if __name__ == "__main__":
@@ -99,16 +162,31 @@ if __name__ == "__main__":
     toc = time.time()
     print(f"time elapsed: {toc-tic} sec.")
 
-    vecs = np.random.randn(np.prod((ln, ln, ln)), 3).astype(np.float32)
-    print("start applying Hamiltonian ...")
-    tic = time.time()
-    vecs = h.operate_vec(vecs)
-    toc = time.time()
-    print(f"time elapsed: {toc-tic} sec.")
+    #  vecs = np.random.randn(np.prod((ln, ln, ln)), 3).astype(np.float32)
+    #  print("start applying Hamiltonian ...")
+    #  tic = time.time()
+    #  vecs = h.operate_vec(vecs)
+    #  toc = time.time()
+    #  print(f"time elapsed: {toc-tic} sec.")
+    #
+    #  vecs = np.random.randn(np.prod((ln, ln, ln)), 3).astype(np.float32)
+    #  print("start applying Hamiltonian ...")
+    #  tic = time.time()
+    #  vecs = h.operate_vec(vecs)
+    #  toc = time.time()
+    #  print(f"time elapsed: {toc-tic} sec.")
 
-    vecs = np.random.randn(np.prod((ln, ln, ln)), 3).astype(np.float32)
-    print("start applying Hamiltonian ...")
-    tic = time.time()
-    vecs = h.operate_vec(vecs)
-    toc = time.time()
-    print(f"time elapsed: {toc-tic} sec.")
+
+    start_event = cp.cuda.stream.Event()
+    stop_event = cp.cuda.stream.Event()
+    stream = cp.cuda.stream.Stream()
+    tex_obj = T.Texture(ln,ln,ln)
+    sur_obj = S.Surface(ln,ln,ln)
+    init_tex = tex_obj.initial_texture()
+    init_sur = sur_obj.initial_surface()
+    with stream:
+        start_event.record()
+        sur = h.operate_unperturbed_cupy(init_tex, init_sur, 1., 1.)
+        stop_event.record()
+        stop_event.synchronize()
+        print(f"time elapsed cuda: {cp.cuda.stream.get_elapsed_time(start_event,stop_event)*1e-3}")
