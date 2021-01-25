@@ -13,18 +13,22 @@ class MainTest(unittest.TestCase):
 
     def test(self):
 
-        shape=(20,20,20)
+        shape=(3,3,3)
 
         xl = np.linspace(-1, 1,shape[0], dtype=np.float32)
         yl = np.linspace(-1, 1,shape[1],  dtype=np.float32)
         zl = np.linspace(-1, 1,shape[2], dtype=np.float32)
-
+        print(xl)
+        print(yl)
+        print(zl)
         np.random.seed(0)
         cube = np.random.randn(len(xl),len(yl),len(zl)).astype(np.float32)
 
         p = P.Potential()
 
         cube_out_numba = p.operate(cube,xl,yl,zl)
+        print(cube)
+        print(cube_out_numba)
 
         tex_obj = T.Texture(*shape)
 
