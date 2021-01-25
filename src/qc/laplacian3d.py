@@ -347,7 +347,7 @@ if __name__ == "__main__":
     init_sur = sur_obj.initial_surface()
     with stream:
         start_event.record()
-        lap.matcube_cupy(init_tex, init_sur)
+        sur = lap.matcube_cupy(init_tex, init_sur)
         stop_event.record()
         stop_event.synchronize()
         print(f"time elapsed cuda: {cp.cuda.stream.get_elapsed_time(start_event,stop_event)*1e-3}")
