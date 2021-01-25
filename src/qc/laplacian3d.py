@@ -37,7 +37,7 @@ _eval_laplacian3d_7pts_stencil_kernel = cp.RawKernel(
 
 @jit(nopython=False, parallel=True)
 def _eval_laplacian3d_7pts_stencil(cube: np.ndarray, xlen: int, ylen: int,
-                                   zlen: int, h3: float) -> np.ndarray:
+                                   zlen: int, h: float) -> np.ndarray:
     cube_out = np.empty_like(cube)
     for x in prange(1, xlen - 1):
         for y in prange(1, ylen - 1):
@@ -229,7 +229,7 @@ def _eval_laplacian3d_7pts_stencil(cube: np.ndarray, xlen: int, ylen: int,
     for x in prange(xlen):
         for y in prange(ylen):
             for z in prange(zlen):
-                cube_out[x, y, z] *= h3
+                cube_out[x, y, z] *= h
 
     return cube_out
 
