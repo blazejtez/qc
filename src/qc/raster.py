@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import portion as P
-import numpy as np
 import math
-import Praktyki.cut_box as box
 from typing import Tuple
+
+import numpy as np
+import portion as P
+
+import Praktyki.cut_box as box
+
 
 class Raster:
     """Raster.
