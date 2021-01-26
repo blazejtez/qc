@@ -1,15 +1,36 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import numpy as np
-import numexpr as ne
-import sympy
+from typing import Tuple
+
 import mpmath
+import numexpr as ne
+import numpy as np
+import sympy
 from numpy import arctan2, sqrt
 from sympy import Symbol
 from sympy.abc import r
-from sympy.physics.hydrogen import Psi_nlm, R_nl, E_nl
+from sympy.physics.hydrogen import E_nl, Psi_nlm, R_nl
 from sympy.utilities.lambdify import lambdify
 
+import qc.raster as raster
+import Praktyki.cut_box as box
+
+def analytical(quantum_numbers: Tuple, box: box.box3D, raster_density=50):
+    """analytical.
+
+    :param quantum_numbers: (n,l,m) - principal, orbital and magnetic quantum numbers
+    :type quantum_numbers: Tuple
+    :param box: 3D box containing the wave function
+    :type box: box.box3D
+    :param raster_density: number of grid points per Bohr radius
+    """
+    r = raster.Raster(raster_density)
+    x_linspace, y_linspace, z_linspace = r.box_linspaces(box)
+    x, y, z = np.meshgrid(x_linspace, y_linspace, z_linspace)
+    psi = HydrogenPsi(*quantum_numbers)
+    psi_data_re, psi_data_im = psi.evaluate_complex(x, y, z)
+    psi_data = psi.evaluate(x, y, z)
+    return psi_data, psi_data_re, psi_data_im, x, y, z
 
 class HydrogenRadial:
     def __init__(self, n: int, l: int):
@@ -60,13 +81,18 @@ class HydrogenPsi:
         expr = expr.cancel()
 
         expr_cmplx = Psi_nlm(n, l, m, r, phi, theta,
-                             1) * (r**2 * sympy.sin(theta))**(1./2)
+                             1) 
         expr_cmplx = expr_cmplx.subs(r, sympy.sqrt(x**2 + y**2 + z**2)).subs(
             phi, sympy.atan2(y, x)).subs(
-                theta, sympy.atan2(sympy.sqrt(x**2 + y**2), z)) * (
-                    1 / sympy.sqrt(x**2 + y**2) * 1 /
-                    sympy.sqrt(x**2 + y**2 + z**2))**(1./2)
-        expr_cmplx = expr_cmplx.cancel()
+                theta, sympy.atan2(sympy.sqrt(x**2 + y**2), z)) 
+        expr_aux = r**2 * sympy.sin(theta) * 1 / sympy.sqrt(x**2 + y**2) * 1 / sympy.sqrt(x**2 + y**2 + z**2)
+
+        expr_aux = expr_aux.subs(r, sympy.sqrt(x**2 + y**2 + z**2)).subs(
+                theta, sympy.atan2(sympy.sqrt(x**2 + y**2), z)) 
+
+        expr_aux = sympy.sqrt(expr_aux.cancel())
+
+        expr_cmplx = expr_cmplx.cancel()*expr_aux
         self.f = lambdify((x, y, z), expr, modules='numpy')
         self.f_cmplx = lambdify((x, y, z), expr_cmplx, modules='numpy')
 

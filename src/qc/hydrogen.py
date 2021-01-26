@@ -1,17 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import argparse
-import constants
-import raster
-import hydrogenpsi
-import portion as P
-import cart2sph
-import time
-import numpy as np
-import Praktyki.cut_box as box
-import contour  
 from typing import Tuple
-from mayavi.mlab import * 
+
+import contour
+import numpy as np
+import portion as P
+from mayavi.mlab import contour3d, show
+
+import Praktyki.cut_box as box
+import qc.hydrogenpsi as hydrogenpsi
+import qc.raster as raster
+
 
 def analytical(quantum_numbers: Tuple, box: box.box3D, raster_density=50):
     """analytical.
