@@ -2,11 +2,8 @@
 # -*- coding: utf-8 -*-
 from typing import Tuple
 
-import mpmath
-import numexpr as ne
 import numpy as np
 import sympy
-from numpy import arctan2, sqrt
 from sympy import Symbol
 from sympy.abc import r
 from sympy.physics.hydrogen import E_nl, Psi_nlm, R_nl
@@ -55,6 +52,7 @@ class HydrogenRadial:
 
 
 class HydrogenPsi:
+    eps = 1e-4
     def __init__(self, n: int, l: int, m: int):
         """__init__.
 
@@ -94,8 +92,23 @@ class HydrogenPsi:
         expr_aux = sympy.sqrt(expr_aux.cancel())
 
         expr_cmplx = expr_cmplx.cancel()*expr_aux
+
+        expr_laplacian_cmplx = -.5*(sympy.diff(expr_cmplx,x,x) + sympy.diff(expr_cmplx,y,y) + sympy.diff(expr_cmplx,z,z))
+
+        expr_laplacian_cmplx = sympy.sympify(expr_laplacian_cmplx.cancel()).subs(x**2+y**2+z**2,
+                                 .5*(x**2+y**2+z**2 + HydrogenPsi.eps + sympy.Abs(x**2+y**2+z**2 - HydrogenPsi.eps)))
+
+        expr_potential_cmplx = 1/sympy.sqrt(.5*(x**2+y**2+z**2 + HydrogenPsi.eps + sympy.Abs(x**2+y**2+z**2 - HydrogenPsi.eps)))*expr_cmplx
+
+
+        expr_potential_cmplx = sympy.sympify(expr_potential_cmplx.cancel())
+        print(expr_laplacian_cmplx)
+        print(expr_potential_cmplx)
+
         self.f = lambdify((x, y, z), expr, modules='numpy')
         self.f_cmplx = lambdify((x, y, z), expr_cmplx, modules='numpy')
+        self.f_laplacian_cmplx = lambdify((x,y,z), expr_laplacian_cmplx, modules='numpy')
+        self.f_potential_cmplx = lambdify((x,y,z), expr_potential_cmplx, modules='numpy')
 
     def _check(self, n: int, l: int, m: int) -> None:
         if l > n - 1:
@@ -123,6 +136,25 @@ class HydrogenPsi:
         return np.real(psi), np.imag(psi)
 
 
+    def evaluate_laplacian_complex(self, x, y, z):
+        """evaluate_complex.
+
+        :param x: meshgrid for x (as returned by numpy.mgrid)
+        :param y: meshgrid for y
+        :param z: meshgrid for z
+        """
+        psi = self.f_laplacian_cmplx(x, y, z)
+        return np.real(psi), np.imag(psi)
+
+    def evaluate_potential_complex(self, x, y, z):
+        """evaluate_complex.
+
+        :param x: meshgrid for x (as returned by numpy.mgrid)
+        :param y: meshgrid for y
+        :param z: meshgrid for z
+        """
+        psi = self.f_potential_cmplx(x, y, z)
+        return np.real(psi), np.imag(psi)
 class HydrogenEnergy:
     def __init__(self, n: int):
         """__init__.
