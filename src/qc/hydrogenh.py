@@ -8,6 +8,8 @@ import cupy as cp
 import numpy as np
 from numba import jit, prange
 
+import qc.surface as S
+import qc.texture as T
 from qc.laplacian3d import *
 from qc.potential import *
 
@@ -42,7 +44,7 @@ _eval_hamiltonian_unperturbed_kernel = cp.RawKernel(
         aux *= h;
         aux1 = xl[idx_x]*xl[idx_x] + yl[idx_y]*yl[idx_y] + zl[idx_z]*zl[idx_z];
         aux2 = Z1 * Z2 *__frsqrt_rn(aux1 < eps ? eps : aux1);
-        value = value * aux2 - 0.5 * aux;
+        value = -value * aux2 - 0.5 * aux;
         surf3Dwrite<float>(value, surface_output,idx_x*sizeof(float),idx_y,idx_z);
     }
     }''',
@@ -139,6 +141,98 @@ class HydrogenHamiltonian:
                 self.h)))
         return surface
 
+class HamiltonianOperatorNumPy:
+    Q1 = Q2 = 1.
+    """HamiltonianOperatorNumPy. Acts like a linear operator accepting and returning numpy matrices"""
+
+
+    def __init__(self, xl, yl, zl):
+        """__init__.
+
+        :param xl: linspace for x axis
+        :param yl: linspace for y axis
+        :param zl: linspace for z axis
+        """
+
+        self.h = HydrogenHamiltonian(xl,yl,zl)
+
+        
+        self.x_len = len(self.h.xl)
+        self.y_len = len(self.h.yl)
+        self.z_len = len(self.h.zl)
+
+        N = self.x_len*self.y_len*self.z_len
+
+        self.shape = (N,N)
+
+        self.t = T.Texture(self.x_len,self.y_len,self.z_len)
+        self.s = S.Surface(self.x_len, self.y_len, self.z_len)
+
+    def pre(self, v):
+
+        v_cube = v.reshape((self.x_len,self.y_len,self.z_len) )
+        
+        tex_obj = self.t.texture_from_ndarray(v_cube)
+
+        sur_obj = self.s.initial_surface()
+
+        return tex_obj, sur_obj
+
+    def post(self, sur_out):
+
+        v_out = self.s.get_data(sur_out)
+
+        v_out_numpy = cp.asnumpy(v_out)
+
+        v = np.reshape(v_out_numpy, (self.x_len * self.y_len * self.z_len,1))
+
+        return v
+        
+    def matvec(self, v):
+        
+        tex_obj, sur_obj = self.pre(v)
+
+        sur_out = self.h.operate_unperturbed_cupy(tex_obj,sur_obj,HamiltonianOperatorNumPy.Q1, HamiltonianOperatorNumPy.Q2)        
+
+        v = self.post(sur_out)
+
+        return v
+    
+    def matmat(self, V : np.ndarray) -> np.ndarray:
+
+        V_out = np.empty_like(V)
+
+        for i in range(np.size(V,1)):
+
+            v = V[:,i]
+
+            v_out = self.matvec(v)
+
+            V_out[:,i] = v_out
+
+        return V_out
+
+class HamiltonianSquaredOperatorNumPy(HamiltonianOperatorNumPy):
+
+    def __init__(self, xl, yl, zl):
+
+        super().__init__(xl,yl,zl)
+
+    def matvec(self, v : np.ndarray) -> np.ndarray:
+
+        print("Matvec in HamiltonianSquaredOperatorNumPy ...")
+
+        tex_obj, sur_obj = self.pre(v) 
+
+        sur_out = self.h.operate_unperturbed_cupy(tex_obj,sur_obj,HamiltonianOperatorNumPy.Q1, HamiltonianOperatorNumPy.Q1)     
+        
+        tex_obj = self.t.texture_from_surface(sur_out)
+
+        sur_out = self.h.operate_unperturbed_cupy(tex_obj, sur_obj, HamiltonianOperatorNumPy.Q1, HamiltonianOperatorNumPy.Q2)
+
+        v = self.post(sur_out)
+
+        return v
 
 if __name__ == "__main__":
 
