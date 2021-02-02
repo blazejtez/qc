@@ -9,6 +9,9 @@ from scipy.sparse.linalg import lobpcg as lp
 import Praktyki.cut_box as box
 import qc.hydrogenh as H
 import qc.raster as raster
+import torch
+
+x = torch.lobpcg()
 
 HYDROGEN_RADIUS = 6.
 
