@@ -59,7 +59,7 @@ def _add_cubes_hamiltonian(c1laplacian: np.ndarray, c2potential: np.ndarray,
     for x in prange(xlen):
         for y in prange(ylen):
             for z in prange(zlen):
-                out[x, y, z] = c2potential[x, y, z] - .5 * c1laplacian[x, y, z]
+                out[x, y, z] = -c2potential[x, y, z] - .5 * c1laplacian[x, y, z]
 
     return out
 
@@ -89,7 +89,7 @@ class HydrogenHamiltonian:
         hx = self.xl[1] - self.xl[0]
         hy = self.yl[1] - self.yl[0]
         hz = self.zl[1] - self.zl[0]
-        self.h = hx**(-1)
+        self.h = hx**(-2)
         # check if the grid cell is cubic
         assert (abs(hy - hx) < 1e-7)
         assert (abs(hz - hx) < 1e-7)
