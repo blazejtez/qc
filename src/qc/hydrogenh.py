@@ -16,7 +16,7 @@ from qc.potential import *
 _eval_hamiltonian_unperturbed_kernel = cp.RawKernel(
     r'''extern "C" __global__ void hamiltonian(cudaTextureObject_t texture_input,
                                         cudaSurfaceObject_t surface_output, float *xl, float *yl, float *zl, 
-                                        int XLEN, int YLEN, int ZLEN, double Z1, double Z2, double eps, double h) {
+                                        int XLEN, int YLEN, int ZLEN, double Z1, double Z2, double eps, double h, double d) {
     int idx_x = threadIdx.x + blockIdx.x * blockDim.x;
     int idx_y = threadIdx.y + blockIdx.y * blockDim.y;
     int idx_z = threadIdx.z + blockIdx.z * blockDim.z;
@@ -45,6 +45,7 @@ _eval_hamiltonian_unperturbed_kernel = cp.RawKernel(
         aux1 = xl[idx_x]*xl[idx_x] + yl[idx_y]*yl[idx_y] + zl[idx_z]*zl[idx_z];
         aux2 = Z1 * Z2 *__frsqrt_rn(aux1 < eps ? eps : aux1);
         value = -value * aux2 - 0.5 * aux;
+        value = (value+1.);
         surf3Dwrite<float>(value, surface_output,idx_x*sizeof(float),idx_y,idx_z);
     }
     }''',
@@ -90,6 +91,7 @@ class HydrogenHamiltonian:
         hy = self.yl[1] - self.yl[0]
         hz = self.zl[1] - self.zl[0]
         self.h = hx**(-2)
+        self.hx = hx
         # check if the grid cell is cubic
         assert (abs(hy - hx) < 1e-7)
         assert (abs(hz - hx) < 1e-7)
@@ -137,8 +139,8 @@ class HydrogenHamiltonian:
              np.int32(np.ceil(float(zlen) / HydrogenHamiltonian.BLOCKSIZE))),
             (HydrogenHamiltonian.BLOCKSIZE, HydrogenHamiltonian.BLOCKSIZE,
              HydrogenHamiltonian.BLOCKSIZE),
-            (texture, surface, xl, yl, zl, xlen, xlen, zlen, np.float64(Q1), np.float64(Q2), HydrogenHamiltonian.eps, np.float64(
-                self.h)))
+            (texture, surface, xl, yl, zl, xlen, xlen, zlen, np.float64(Q1), np.float64(Q2), np.float64(HydrogenHamiltonian.eps), np.float64(
+                self.h), np.float64(self.hx)))
         return surface
 
 class HamiltonianOperatorNumPy:
