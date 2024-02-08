@@ -1,18 +1,44 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-'''Module responsible for the computation of the laplacian of a cube'''
+'''
+Module responsible for the computation of the laplacian of a cube
+'''
 
 import time
 from typing import Dict, Tuple
 
 import cupy as cp
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib import pyplot as plt
 from numba import jit, prange
-import qc.surface as S
-import qc.texture as T
+import src.qc.surface as S
+import src.qc.texture as T
 
 _eval_laplacian3d_7pts_stencil_kernel = cp.RawKernel(
+    r'''extern "C" __global__ void test(cudaTextureObject_t texture_input,
+                                        cudaSurfaceObject_t surface_output, int XLEN, int YLEN, int ZLEN,
+                                        float h){
+    int idx_x = threadIdx.x + blockIdx.x * blockDim.x;
+    int idx_y = threadIdx.y + blockIdx.y * blockDim.y;
+    int idx_z = threadIdx.z + blockIdx.z * blockDim.z;
+    float value = 0;
+    if((idx_x < XLEN) && (idx_y < YLEN) && (idx_z < uLEN)){
+        value = -tex3D<float>(texture_input, (float)idx_x, (float)idx_y, (float)idx_z)*6 + \
+        (idx_x == 0 ? 0 : tex3D<float>(texture_input, (float)idx_x - 1, (float)idx_y, (float)idx_z)) + \
+        (idx_x == XLEN-1 ? 0 : tex3D<float>(texture_input, (float)idx_x + 1, (float)idx_y, (float)idx_z)) + \
+        (idx_y == 0 ? 0 : tex3D<float>(texture_input, (float)idx_x, (float)idx_y - 1, (float)idx_z)) + \
+        (idx_y == YLEN-1 ? 0 : tex3D<float>(texture_input, (float)idx_x, (float)idx_y + 1, (float)idx_z)) + \
+        (idx_z == 0 ? 0 : tex3D<float>(texture_input, (float)idx_x, (float)idx_y, (float)idx_z - 1)) + \
+        (idx_z == ZLEN -1 ? 0 : tex3D<float>(texture_input, (float)idx_x, (float)idx_y, (float)idx_z + 1));
+        value *= h;
+        surf3Dwrite<float>(value, surface_output,idx_x*sizeof(float),idx_y,idx_z);
+    }
+                                 }''',
+    'test',
+    backend='nvcc')
+
+_eval_laplacian3d_27pts_stencil_kernel = cp.RawKernel(
     r'''extern "C" __global__ void test(cudaTextureObject_t texture_input,
                                         cudaSurfaceObject_t surface_output, int XLEN, int YLEN, int ZLEN,
                                         float h){
@@ -351,6 +377,6 @@ if __name__ == "__main__":
         stop_event.record()
         stop_event.synchronize()
         print(f"time elapsed cuda: {cp.cuda.stream.get_elapsed_time(start_event,stop_event)*1e-3}")
-    #plt.plot(cube_out.flatten())
-    #plt.plot(cube_out_numba.flatten())
-    #plt.show()
+    # plt.plot(cube_out.flatten())
+    # plt.plot(cube_out_numba.flatten())
+    # plt.show()

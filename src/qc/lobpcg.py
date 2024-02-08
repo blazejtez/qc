@@ -3,8 +3,8 @@
 
 import numpy as np
 import scipy.linalg
-from qc.hydrogenh import *
-from qc.raster import *
+from src.qc.hydrogenh import *
+from src.qc.raster import *
 import copy
 
 

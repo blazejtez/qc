@@ -6,12 +6,12 @@ import portion as P
 from scipy.sparse.linalg import LinearOperator
 from scipy.sparse.linalg import lobpcg as lp
 
-import Praktyki.cut_box as box
-import qc.hydrogenh as H
-import qc.raster as raster
-import torch
+import Praktyki.cut_box_3D as box
+import src.qc.hydrogenh as H
+import src.qc.raster as raster
+# import torch
 
-x = torch.lobpcg()
+# x = torch.lobpcg()
 
 HYDROGEN_RADIUS = 6.
 

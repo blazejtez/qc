@@ -7,7 +7,7 @@ from typing import Tuple
 import numpy as np
 import portion as P
 
-import Praktyki.cut_box as box
+import Praktyki.cut_box_3D as box
 
 
 class Raster:

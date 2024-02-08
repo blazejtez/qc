@@ -8,10 +8,10 @@ import cupy as cp
 import numpy as np
 from numba import jit, prange
 
-import qc.surface as S
-import qc.texture as T
-from qc.laplacian3d import *
-from qc.potential import *
+import src.qc.surface as S
+import src.qc.texture as T
+from src.qc.laplacian3d import *
+from src.qc.potential import *
 
 _eval_hamiltonian_unperturbed_kernel = cp.RawKernel(
     r'''extern "C" __global__ void hamiltonian(cudaTextureObject_t texture_input,

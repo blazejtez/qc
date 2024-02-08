@@ -3,8 +3,8 @@
 
 import numpy as np
 import cupy as cp
-import qc.texture as T
-import qc.surface as S
+import src.qc.texture as T
+import src.qc.surface as S
 import time
 from numba import njit, jit, prange
 

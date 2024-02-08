@@ -9,8 +9,8 @@ from sympy.abc import r
 from sympy.physics.hydrogen import E_nl, Psi_nlm, R_nl
 from sympy.utilities.lambdify import lambdify
 
-import Praktyki.cut_box as box
-import qc.raster as raster
+import Praktyki.cut_box_3D as box
+import src.qc.raster as raster
 
 
 def analytical(quantum_numbers: Tuple, box: box.box3D, raster_density=50):
