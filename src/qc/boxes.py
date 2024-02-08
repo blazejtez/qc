@@ -3,7 +3,7 @@
 
 import portion
 from raster import Raster
-import Praktyki.cut_box as box
+import Praktyki.cut_box_3D as box
 
 
 class Box3DPhysical(box.box3D):
