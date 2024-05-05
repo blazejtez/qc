@@ -23,7 +23,7 @@ _eval_laplacian3d_7pts_stencil_kernel = cp.RawKernel(
     int idx_y = threadIdx.y + blockIdx.y * blockDim.y;
     int idx_z = threadIdx.z + blockIdx.z * blockDim.z;
     float value = 0;
-    if((idx_x < XLEN) && (idx_y < YLEN) && (idx_z < uLEN)){
+    if((idx_x < XLEN) && (idx_y < YLEN) && (idx_z < ZLEN)){
         value = -tex3D<float>(texture_input, (float)idx_x, (float)idx_y, (float)idx_z)*6 + \
         (idx_x == 0 ? 0 : tex3D<float>(texture_input, (float)idx_x - 1, (float)idx_y, (float)idx_z)) + \
         (idx_x == XLEN-1 ? 0 : tex3D<float>(texture_input, (float)idx_x + 1, (float)idx_y, (float)idx_z)) + \
