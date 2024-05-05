@@ -36,7 +36,7 @@ class HydrogenRadial:
 
         :param n: principal quantum number
         :type n: int
-        :param l: orbital quantum number l \in 0,...,n-1
+        :param l: orbital quantum number l in 0,...,n-1
         :type l: int
         """
         self._check(n, l)
@@ -57,9 +57,9 @@ class HydrogenPsi:
 
         :param n: principal quantum number
         :type n: int
-        :param l: orbital quantum number l \in 0,...,n-1
+        :param l: orbital quantum number l in 0,...,n-1
         :type l: int
-        :param m: magnetic quantum number m \in -l,...,l
+        :param m: magnetic quantum number m in -l,...,l
         :type m: int
         """
         self._check(n, l, m)
@@ -120,9 +120,9 @@ if __name__ == "__main__":
     y = np.random.randn(2, 2)
     z = np.random.randn(2, 2)
     print(hpsi.evaluate(x, y, z))
-    re, im = hpsi.evaluate_complex(x,y,z)
-    print(re)
-    print(im)
-    print(re**2+im**2)
+    # re, im = hpsi.evaluate_complex(x,y,z)
+    # //print(re)
+    # //print(im)
+    # print(re**2+im**2)
     he = HydrogenEnergy(2)
     print(he.eval())
