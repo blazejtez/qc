@@ -26,6 +26,15 @@ class Texture:
 
         return self.texture_from_ndarray(x_reshaped)
 
+    def ones(self):
+        """fills texture with ones.
+        for checking if derivative calc is correct"""
+        x_initial_vector = cp.ones((self.x_len * self.y_len * self.z_len,
+                                           Texture.NUMVECTORS), dtype=cp.float32)
+        x_reshaped = cp.reshape(x_initial_vector, (self.x_len, self.y_len, self.z_len))
+        return self.texture_from_ndarray(x_reshaped)
+
+
 
     def texture_from_surface(self, surface_obj):
         """texture_from_surface.
