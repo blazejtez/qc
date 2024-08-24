@@ -34,7 +34,15 @@ class Texture:
         x_reshaped = cp.reshape(x_initial_vector, (self.x_len, self.y_len, self.z_len))
         return self.texture_from_ndarray(x_reshaped)
 
-
+    def x(self):
+        """fills texture with x."""
+        x_initial_vector = cp.ones((self.x_len * self.y_len * self.z_len,))
+        for i,j,k in zip(range(self.x_len//2), range(self.y_len//2), range(self.z_len//2)):
+            x_initial_vector[i][j][k] = max(i, j, k)
+            x_initial_vector[-i][-j][-k] = max(i, j, k)
+        x_reshaped = cp.reshape(x_initial_vector, (self.x_len, self.y_len, self.z_len))
+        print(self.texture_from_ndarray(x_reshaped))
+        return self.texture_from_ndarray(x_reshaped)
 
     def texture_from_surface(self, surface_obj):
         """texture_from_surface.
