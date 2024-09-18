@@ -1,9 +1,6 @@
 import unittest
 
-import numpy as np
-import qc.texture as T
-import qc.surface as S
-from qc.laplacian3d import *
+from qc.hamiltonian.laplacian3d import *
 
 
 class MainTest(unittest.TestCase):
@@ -23,7 +20,7 @@ class MainTest(unittest.TestCase):
 
         cube_out_numba = lap.matcube_numba(cube)
         
-        tex_obj = T.Texture(*shape)
+        tex_obj = T.Texture3D(*shape)
 
         sur_obj = S.Surface(*shape)
 
