@@ -2,13 +2,13 @@ import cupy as cp
 import math
 
 # Define constants
-alpha = 0.5  # GTO parameter, controls width of Gaussian
-pi = math.pi
+alpha = 0.28294212105225837470023780155114  # GTO parameter, controls width of Gaussian, 8/(9*pi)
 
 # Define grid for evaluation
-N = 600# Number of grid points per dimension
+N = 600  # Number of grid points per dimension
 L = 20.0  # Size of the grid box (in atomic units)
 dx = L / N  # Grid spacing
+V0 = 1/dx     # Potential parameter
 
 # Create 3D grid of points (x, y, z) for GPU
 x = cp.linspace(-L/2, L/2, N)
@@ -37,9 +37,8 @@ laplacian_psi = (
 # Kinetic energy expectation value ⟨T⟩ = -1/2 ∫ψ*(-∇²ψ) dV
 kinetic_energy = -0.5 * cp.sum(psi * laplacian_psi) * dx**3
 
-# Potential energy operator: V(r) = -1/r
-potential_operator = -1 / R
-potential_operator[R == 0] = 0  # Handle singularity at r = 0
+# Potential energy operator: V(r)
+potential_operator = cp.where(R > 1/V0, 1 / R - V0, 0)  # Modify potential based on V0
 
 # Potential energy expectation value ⟨V⟩ = ∫ψ*(Vψ) dV
 potential_energy = cp.sum(psi * potential_operator * psi) * dx**3
@@ -50,8 +49,10 @@ total_energy = kinetic_energy + potential_energy
 # Transfer data back to CPU for display
 kinetic_energy = kinetic_energy.get()
 potential_energy = potential_energy.get()
+corrected_potential_energy = potential_energy + V0
 total_energy = total_energy.get()
 
 print(f"Kinetic Energy (T): {kinetic_energy:.6f} hartree")
 print(f"Potential Energy (V): {potential_energy:.6f} hartree")
+print(f"Potential Energy Corrected (V): {corrected_potential_energy:.6f} hartree")
 print(f"Total Energy (E): {total_energy:.6f} hartree")
