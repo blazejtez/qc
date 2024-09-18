@@ -5,9 +5,9 @@
 import unittest
 
 import numpy as np
-import qc.texture as T
-import qc.surface as S
-import qc.potential as P
+import qc.data.texture3D as T
+import qc.data.surface as S
+import qc.hamiltonian.potential as P
 import cupy as cp
 class MainTest(unittest.TestCase):
 
@@ -25,7 +25,7 @@ class MainTest(unittest.TestCase):
 
         cube_out_numba = p.operate(cube,xl,yl,zl)
 
-        tex_obj = T.Texture(*shape)
+        tex_obj = T.Texture3D(*shape)
 
         sur_obj = S.Surface(*shape)
 
