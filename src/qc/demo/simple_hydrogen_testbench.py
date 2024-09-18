@@ -2,7 +2,7 @@ import cupy as cp
 import math
 
 # Define constants
-alpha = 0.5  # GTO parameter, controls width of Gaussian
+alpha = 0.28294212105225837470023780155114  # GTO parameter, controls width of Gaussian
 pi = math.pi
 
 # Define grid for evaluation
