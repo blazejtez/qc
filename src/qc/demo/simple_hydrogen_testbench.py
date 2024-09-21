@@ -2,7 +2,8 @@ import cupy as cp
 import math
 
 # Define constants
-alpha = 0.28294212105225837470023780155114  # GTO parameter, controls width of Gaussian, 8/(9*pi)
+alpha = 0.28294212105225837470023780155114  # GTO parameter, controls width of Gaussian
+pi = math.pi
 
 # Define grid for evaluation
 N = 600  # Number of grid points per dimension
@@ -49,10 +50,8 @@ total_energy = kinetic_energy + potential_energy
 # Transfer data back to CPU for display
 kinetic_energy = kinetic_energy.get()
 potential_energy = potential_energy.get()
-corrected_potential_energy = potential_energy + V0
 total_energy = total_energy.get()
 
 print(f"Kinetic Energy (T): {kinetic_energy:.6f} hartree")
 print(f"Potential Energy (V): {potential_energy:.6f} hartree")
-print(f"Potential Energy Corrected (V): {corrected_potential_energy:.6f} hartree")
 print(f"Total Energy (E): {total_energy:.6f} hartree")
