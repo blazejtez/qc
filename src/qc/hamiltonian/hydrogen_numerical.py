@@ -20,8 +20,6 @@ N = len(xl)*len(yl)*len(zl)
 
 h = H.HamiltonianOperatorCuPy(xl,yl,zl)
 
-l = LinearOperator(matvec = h.matvec, matmat = h.matmat, dtype = np.float32, shape = h.shape)
-
 v_init = cp.random.randn(*(len(xl)*len(yl)*len(zl),1),dtype=cp.float32)
 
 v_init = v_init/np.linalg.norm(v_init)
@@ -39,18 +37,20 @@ def gradient(v, h):
     v = v.flatten()
     Hv = h.matvec(v)  # H * v
     denom = cp.dot(v.T, v)
-    grad = (Hv - rayleigh_quotient(v, h) * v) / denom  # Gradient of Rayleigh quotient
-    return grad
+    rayleigh_quotient_value = rayleigh_quotient(v, h)
+    grad = (Hv - rayleigh_quotient_value * v) / denom  # Gradient of Rayleigh quotient
+    return grad, rayleigh_quotient_value
 
 # Parameters for Gradient Descent
-learning_rate = 0.01
-max_iters = 1000
+learning_rate = 0.1
+max_iters = 10
 tolerance = 1e-6
 
 v = v_init.copy()
 for i in range(max_iters):
-    grad = gradient(v, h)
-    v_new = v - learning_rate * grad  # Update step
+    grad, rayleigh_quotient_value = gradient(v, h)
+    print("Iteration:", i, "Eigenvalue:", rayleigh_quotient_value)
+    v_new = (v.T - learning_rate * grad).T  # Update step
     v_new /= cp.linalg.norm(v_new)  # Normalize
 
     if cp.linalg.norm(v_new - v) < tolerance:  # Check for convergence
