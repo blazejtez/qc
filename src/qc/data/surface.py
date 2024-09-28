@@ -17,7 +17,7 @@ class Surface:
     def initial_surface(self):
         """initial_surface."""
 
-        y = cp.empty((self.x_len*self.y_len*self.z_len, 1), dtype=cp.float32)
+        y = cp.empty((self.x_len*self.y_len*self.z_len), dtype=cp.float32)
 
         channel_descriptor = cp.cuda.texture.ChannelFormatDescriptor(
             Surface.NUMBITS, 0, 0, 0, cp.cuda.runtime.cudaChannelFormatKindFloat)
