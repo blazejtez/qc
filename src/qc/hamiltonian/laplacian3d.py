@@ -311,9 +311,9 @@ if __name__ == "__main__":
 
     # Coordinates (centered around the nucleus at (0, 0, 0))
 
-    xl = cp.linspace(-extent, extent, XLEN, dtype=cp.float32)
-    yl = cp.linspace(-extent, extent, YLEN, dtype=cp.float32)
-    zl = cp.linspace(-extent, extent, ZLEN, dtype=cp.float32)
+    xl = np.linspace(-extent, extent, XLEN, dtype=cp.float32)
+    yl = np.linspace(-extent, extent, YLEN, dtype=cp.float32)
+    zl = np.linspace(-extent, extent, ZLEN, dtype=cp.float32)
 
     hx = xl[1] - xl[0]
     print(hx)
