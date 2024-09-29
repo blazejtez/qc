@@ -37,12 +37,12 @@ gaussian_orbital /= cp.sqrt(norm_factor)
 v_init = cp.reshape(gaussian_orbital, (len(X) * len(Y) * len(Z), 1))
 
 # Adam parameters
-beta1 = 0.99  # Exponential decay rate for the first moment
-beta2 = 0.9999  # Exponential decay rate for the second moment
+beta1 = 0.9  # Exponential decay rate for the first moment
+beta2 = 0.999  # Exponential decay rate for the second moment
 epsilon = 1e-10  # Small constant to prevent division by zero
-learning_rate = 1e-7  # Step size
-max_iters = 10000
-tolerance = 1e-5
+learning_rate = 1e-5  # Step size
+max_iters = 1000
+tolerance = 1e-4
 
 # Initialize first moment (m) and second moment (v)
 m = cp.zeros_like(v_init)
@@ -92,6 +92,7 @@ if __name__ == "__main__":
         residual_norm = cp.linalg.norm(v_new - v_curr)
         if residual_norm < tolerance:
             break
+
 
         # Print iteration details
         print("Iteration:", i, "Eigenvalue:", rayleigh_quotient_value, "Residual norm:", residual_norm)
