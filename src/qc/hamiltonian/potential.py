@@ -2,8 +2,6 @@
 # -*- coding: utf-8 -*-
 
 
-V0 = 1
-
 import numpy as np
 import cupy as cp
 from matplotlib import pyplot as plt
@@ -44,7 +42,7 @@ _eval_potential_kernel = cp.RawKernel(
 
 class Potential:
     BLOCKSIZE = 8    
-    eps = 1e-4
+    eps = 1e-2
     """Potential. Computes Coulomb potential for a 3D mesh"""
     def __init__(self, x_linspace: np.ndarray, Q1: float = 1, Q2: float = 1, extent: float = 10):
         """__init__.
@@ -60,7 +58,7 @@ class Potential:
         self.N = len(x_linspace)
         # TODO: proper calculation of v0
         # self.v0 = self.N / extent
-        self.v0 = V0
+        self.v0 = 1
 
         _eval_potential_kernel.compile()
 
@@ -170,9 +168,9 @@ if __name__ == "__main__":
     plt.show()
 
     print(result_cpu.sum(axis=0).sum(axis=0).sum(axis=0))
-    potential = cp.asnumpy(potential.truncated_potential_3d())
-    potential = potential.reshape((XLEN, YLEN, ZLEN))
-    potential = potential - V0
+    potential_vector = cp.asnumpy(potential.truncated_potential_3d())
+    potential_vector = potential_vector.reshape((XLEN, YLEN, ZLEN))
+    potential_vector = potential_vector - potential.v0
     plt.figure(figsize=(32, 32))
     plt.imshow(potential[300], cmap='viridis', origin='lower')
     cbar = plt.colorbar(label='Output value', format='%.2f')
@@ -183,7 +181,7 @@ if __name__ == "__main__":
     plt.show()
 
     plt.figure()
-    plt.plot(potential[300][300])
+    plt.plot(potential_vector[300][300])
     plt.title(f'Output 1D summed')
     plt.xlabel('X axis')
     plt.ylabel('Y axis')
