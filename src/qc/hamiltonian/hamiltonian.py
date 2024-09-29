@@ -1,10 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import copy
-
 import numpy as np
-
 from qc.hamiltonian.potential import *
 from qc.hamiltonian.laplacian3d import Laplacian3D
 from qc.hamiltonian.potential import Potential
@@ -106,12 +103,14 @@ class HamiltonianOperatorCuPy:
         tex_obj, sur_obj = self.pre(v)
         # v1 = self.potential.truncated_potential_3d()
         potential = self.potential.operate_cupy(tex_obj, sur_obj, self.x_linspace, self.y_linspace, self.z_linspace)
+        v1 = self.post(potential)
+
+        tex_obj, sur_obj = self.pre(v)
         laplacian = self.laplacian.matcube_cupy_27(tex_obj, sur_obj)
         v2 = self.post(laplacian)
-        # print("kinetic part: ", v1.sum(axis=0).sum(axis=0).sum(axis=0))
-        # print("potential part: ", v2.sum(axis=0).sum(axis=0).sum(axis=0))
-        v1 = self.post(potential)
-        return v1
+        # print("kinetic part: ", cp.sum(v1))
+        # print("potential part: ", cp.sum(v2))
+        return -v1 - 0.5*v2
 
     def matmat(self, V: cp.ndarray) -> cp.ndarray:
         V_out = cp.empty_like(V)
@@ -131,52 +130,60 @@ if __name__ == "__main__":
     xl = np.linspace(-extent, extent, XLEN, dtype=cp.float32)
     yl = np.linspace(-extent, extent, YLEN, dtype=cp.float32)
     zl = np.linspace(-extent, extent, ZLEN, dtype=cp.float32)
+    h = HamiltonianOperatorCuPy(xl, yl, zl, extent=extent)
     dx = xl[1] - xl[0]
     X, Y, Z = cp.meshgrid(cp.array(xl), cp.array(yl), cp.array(zl))
     gaussian_orbital = cp.exp(-ALPHA * (X ** 2 + Y ** 2 + Z ** 2), dtype=cp.float32)
+    norm_factor = cp.sum(gaussian_orbital ** 2) * h.h ** 3
+    gaussian_orbital /= cp.sqrt(norm_factor)
+
+
     v = cp.reshape(gaussian_orbital, (len(xl) * len(yl) * len(zl), 1))
-    # v = cp.random.randn((len(xl) * len(yl) * len(zl)), 1, dtype=cp.float32)
-    # Step 4: Launch the kernel
-    h = HamiltonianOperatorCuPy(xl, yl, zl, extent=extent)
-    result = v  # h.matvec(v)
-    result = result.reshape((len(xl), len(yl), len(zl)))
-    result_cpu = cp.asnumpy(result)
+    # # v = cp.random.randn((len(xl) * len(yl) * len(zl)), 1, dtype=cp.float32)
+    # # Step 4: Launch the kernel
+    print(v.T.dot(h.matvec(v)))
+    print((v.T.dot(v)))
+    result = v.T.dot(h.matvec(v))/(v.T.dot(v))
+    print("real result", result)
+    # result = result.reshape((len(xl), len(yl), len(zl)))
+    # result_cpu = cp.asnumpy(result)
+
     # Print the result for inspection
     # print(result_cpu)
 
-    plt.figure(figsize=(64, 64))
-    plt.imshow(result_cpu.sum(axis=0), cmap='viridis', origin='lower')
-    plt.colorbar(label='Output value')
-    plt.title(f'Output data result 2D summed on x axis')
-    plt.xlabel('X axis')
-    plt.ylabel('Y axis')
-    plt.show()
+    # plt.figure(figsize=(64, 64))
+    # plt.imshow(result_cpu.sum(axis=0), cmap='viridis', origin='lower')
+    # plt.colorbar(label='Output value')
+    # plt.title(f'Output data result 2D summed on x axis')
+    # plt.xlabel('X axis')
+    # plt.ylabel('Y axis')
+    # plt.show()
+    #
+    # plt.figure(figsize=(64, 64))
+    # plt.imshow(result_cpu.sum(axis=1), cmap='viridis', origin='lower')
+    # plt.colorbar(label='Output value')
+    # plt.title(f'Output data result 2D summed on x axis')
+    # plt.xlabel('X axis')
+    # plt.ylabel('Y axis')
+    # plt.show()
+    #
+    # plt.figure(figsize=(64, 64))
+    # plt.imshow(result_cpu.sum(axis=2), cmap='viridis', origin='lower')
+    # plt.colorbar(label='Output value')
+    # plt.title(f'Output data result 2D summed on x axis')
+    # plt.xlabel('X axis')
+    # plt.ylabel('Y axis')
+    # plt.show()
+    #
+    #
+    # plt.figure()
+    # plt.plot(result_cpu.sum(axis=0).sum(axis=0))
+    # plt.title(f'Output 1D summed')
+    # plt.xlabel('X axis')
+    # plt.ylabel('Y axis')
+    # plt.show()
 
-    plt.figure(figsize=(64, 64))
-    plt.imshow(result_cpu.sum(axis=1), cmap='viridis', origin='lower')
-    plt.colorbar(label='Output value')
-    plt.title(f'Output data result 2D summed on x axis')
-    plt.xlabel('X axis')
-    plt.ylabel('Y axis')
-    plt.show()
-
-    plt.figure(figsize=(64, 64))
-    plt.imshow(result_cpu.sum(axis=2), cmap='viridis', origin='lower')
-    plt.colorbar(label='Output value')
-    plt.title(f'Output data result 2D summed on x axis')
-    plt.xlabel('X axis')
-    plt.ylabel('Y axis')
-    plt.show()
-
-
-    plt.figure()
-    plt.plot(result_cpu.sum(axis=0).sum(axis=0))
-    plt.title(f'Output 1D summed')
-    plt.xlabel('X axis')
-    plt.ylabel('Y axis')
-    plt.show()
-
-    total = -cp.sum(result) * dx ** 3
+    total = -cp.sum(result) * (h.h ** 3)
 
     print("total energy:", total)
 
