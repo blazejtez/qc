@@ -53,15 +53,18 @@ class GoalGradient():
         num = 2 * A.matvec(x)
         denom = self.xtx(x)
         xtAx_value = self.xtAx(x, A)
+        term1 = (num / denom) - (2 * xtAx_value * x / denom ** 2)
         if self.Y is not None:
-            gradient = (num / denom) - (2 * xtAx_value * x / denom ** 2) + self.Y.dot(lambd)
+            term2 = self.gradient_lambda(x)
+            gradient = cp.concatenate((term1.T, term2.T), axis=1).T
         else:
-            gradient = (num / denom) - (2 * xtAx_value * x / denom ** 2)
+            gradient = term1
         return gradient
 
     def gradient_lambda(self, x):
         if self.Y is not None:
             return self.Y.T.dot(x)
+
 def gradient_descent_constrained(goal_gradient, x0, lambd0, lr=0.001, tol=0.005, max_iter=1000):
     x = x0
     lambd = lambd0
