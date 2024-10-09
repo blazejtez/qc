@@ -84,17 +84,14 @@ def gradient_descent_constrained(goal_gradient, x0, lambd0, lr=0.001, tol=0.005,
 
     t = 0  # Timestep for bias correction
 
-    # Initialize variables for early stopping
-    best_eigenvalue = cp.inf
-    patience = 50  # Number of iterations to wait before stopping after the eigenvalue starts increasing
-    patience_counter = 0
-
     for i in range(max_iter):
         t += 1  # Increment timestep
 
         # Compute gradients
         grad_x = goal_gradient.gradient_x(x, A, lambd)
         grad_lambda = goal_gradient.gradient_lambda(x)
+        prev_eigenvalue = goal_gradient.objective_function(x,A,lambd)
+
 
         # Update biased first moment estimate for x
         m_x = beta1 * m_x + (1 - beta1) * grad_x
@@ -126,16 +123,12 @@ def gradient_descent_constrained(goal_gradient, x0, lambd0, lr=0.001, tol=0.005,
 
         # Compute the eigenvalue (objective function value)
         eigenvalue = goal_gradient.objective_function(x_new, A, lambd_new)
+        
+        if abs(prev_eigenvalue - eigenvalue) < tol:
+            print("Eigenvalue converged:",abs(prev_eigenvalue - eigenvalue) )
+            time.sleep(5)
+            break
 
-        # Check for early stopping
-        if eigenvalue < best_eigenvalue:
-            best_eigenvalue = eigenvalue
-            patience_counter = 0  # Reset counter if improvement
-        else:
-            patience_counter += 1
-            if patience_counter >= patience:
-                print(f"Early stopping at iteration {i} as eigenvalue started increasing.")
-                break
 
         # Check convergence
         if cp.linalg.norm(x_new - x) < tol and (lambd is None or cp.linalg.norm(lambd_new - lambd) < tol):
@@ -173,7 +166,7 @@ def find_lowest_eigenvalues(A, initial_x, num_eigenvalues=5, lr=1e-5, tol=1e-5, 
         # Store the eigenvector and eigenvalue
         eigenvectors.append(x)
         eigenvalues.append(eigenvalue)
-
+        
         # Prepare for next iteration
         x0 = cp.random.rand(*x.shape).astype(cp.float32)
         x0 = orthogonalize(x0, eigenvectors)
@@ -197,8 +190,8 @@ def numerical_gradient_x(goal_gradient, x, A, lambd, epsilon=1e-8):
 
 
 # Define the grid
-N = 301
-L = 30.0
+N = 201
+L = 15.0
 
 x = np.linspace(-L, L, N, dtype=cp.float32)
 y = np.linspace(-L, L, N, dtype=cp.float32)
@@ -215,7 +208,7 @@ A = HamiltonianOperatorCuPy(x, y, z, L)
 
 # Find the lowest five eigenvalues
 start_time = time.time()
-eigenvalues, eigenvectors = find_lowest_eigenvalues(A, x0, num_eigenvalues=5, lr = 1e-4, tol=1e-4, max_iter = 6000)
+eigenvalues, eigenvectors = find_lowest_eigenvalues(A, x0, num_eigenvalues=5, lr = 1e-6, tol=1e-7, max_iter = 10000)
 end_time = time.time()
 
 # Display the results

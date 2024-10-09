@@ -122,9 +122,11 @@ X, Y, Z = cp.meshgrid(cp.array(x), cp.array(y), cp.array(z), indexing='ij')
 gaussian_orbital = cp.exp(-ALPHA*(X**2 + Y**2 + Z**2), dtype=cp.float32)
 x0 = cp.reshape(gaussian_orbital, (len(x) * len(y) * len(z), 1))
 
-Y = load_cub("h100.cub")
-Y = cp.reshape(Y, (sh, 1), )
-lamd = cp.asarray([[-0.49654406]], dtype=cp.float32)
+# Y = load_cub("h100.cub")
+# Y = cp.reshape(Y, (sh, 1), )
+# lamd = cp.asarray([[-0.49654406]], dtype=cp.float32)
+Y = None
+lamd = None
 
 # Initialize matrix A
 A = HamiltonianOperatorCuPy(x, y, z, L)

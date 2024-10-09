@@ -22,13 +22,13 @@ def gradient(v, h):
     grad = (Hv - rayleigh_quotient_value * v) / denom  # Gradient of Rayleigh quotient
     return grad, rayleigh_quotient_value
 
-def adam(max_iters=1000):
+def adam(max_iters=5000, beta1=0.9, beta2=0.999, epsilon=1e-10, learning_rate=1e-6, tol=1e-4):
     HYDROGEN_RADIUS = 10.
     ALPHA = 0.28294212105225837470023780155114
 
     interval = P.closed(-HYDROGEN_RADIUS, HYDROGEN_RADIUS)
     box_ = box.box3D(interval, interval, interval)
-    r = raster.Raster(10)
+    r = raster.Raster(30)
     xl, yl, zl = r.box_linspaces(box_)
     N = len(xl) * len(yl) * len(zl)
 
@@ -41,13 +41,6 @@ def adam(max_iters=1000):
 
     v_init = cp.reshape(gaussian_orbital, (len(X) * len(Y) * len(Z), 1))
 
-    # Adam parameters
-    beta1 = 0.9  # Exponential decay rate for the first moment
-    beta2 = 0.999  # Exponential decay rate for the second moment
-    epsilon = 1e-10  # Small constant to prevent division by zero
-    learning_rate = 1e-5  # Step size
-    tolerance = 1e-4
-
     # Initialize first moment (m) and second moment (v)
     m = cp.zeros_like(v_init)
     v = cp.zeros_like(v_init)
@@ -56,7 +49,6 @@ def adam(max_iters=1000):
     t = 0
     # Optimization loop with Adam
     v_curr = v_init.copy()
-
     for i in range(max_iters):
         grad, rayleigh_quotient_value = gradient(v_curr, h)
 
@@ -74,10 +66,14 @@ def adam(max_iters=1000):
 
         # Normalize the new vector
         v_new /= cp.linalg.norm(v_new)
-
+        new_grad, new_rayleigh_quotient_value = gradient(v_new, h)
+        diff = new_rayleigh_quotient_value - rayleigh_quotient_value
         # Check for convergence
         residual_norm = cp.linalg.norm(v_new - v_curr)
-        if residual_norm < tolerance:
+        if residual_norm < tol:
+            break
+        if abs(diff) < 1e-10:
+            print("Diff low enough:", diff)
             break
 
 
@@ -95,5 +91,5 @@ def adam(max_iters=1000):
 
 
 if __name__ == "__main__":
-    adam(512)
+    adam()
 

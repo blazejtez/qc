@@ -41,7 +41,7 @@ class GoalGradient():
 
 
 # Define the grid
-N = 300
+N = 100
 L = 10.0  # Define the size of the grid (in atomic units, for example)
 
 x = np.linspace(-L, L, N, dtype=cp.float32)
@@ -60,7 +60,7 @@ A = HamiltonianOperatorCuPy(x, y, z, L)
 goal_gradient = GoalGradient(A, x0)
 
 # Gradient descent using the GoalGradient class
-def gradient_descent_cached(goal_gradient, x0, lr=0.0001, tol=1e-6, max_iter=100000):
+def gradient_descent_cached(goal_gradient, x0, lr=0.001, tol=1e-6, max_iter=100000):
     x = x0
     A = goal_gradient.hamiltonian
     for i in range(max_iter):
