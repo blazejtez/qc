@@ -7,28 +7,16 @@ import portion as P
 import Praktyki.cut_box_3D as box
 import qc.hamiltonian.hamiltonian as H
 import qc.data.raster as raster
-
-# Gradient Descent to Minimize Rayleigh Quotient with Adam
-def rayleigh_quotient(v, h):
-    num = cp.dot(v.T, h.matvec(v))  # Numerator: v^H * H * v
-    denom = cp.dot(v.T, v)  # Denominator: v^H * v
-    return cp.real(num / denom)
+from rayleigh_quotient import GoalGradient
 
 
-def gradient(v, h):
-    Hv = h.matvec(v)  # H * v
-    denom = cp.dot(v.T, v)
-    rayleigh_quotient_value = rayleigh_quotient(v, h)
-    grad = (Hv - rayleigh_quotient_value * v) / denom  # Gradient of Rayleigh quotient
-    return grad, rayleigh_quotient_value
-
-def adam(max_iters=5000, beta1=0.9, beta2=0.999, epsilon=1e-10, learning_rate=1e-6, tol=1e-4):
+def adam(raster_density=10, max_iters=5000, beta1=0.9, beta2=0.999, epsilon=1e-10, learning_rate=1e-5, tol=1e-10):
     HYDROGEN_RADIUS = 10.
-    ALPHA = 0.28294212105225837470023780155114
+    ALPHA = 0.282942121052
 
     interval = P.closed(-HYDROGEN_RADIUS, HYDROGEN_RADIUS)
     box_ = box.box3D(interval, interval, interval)
-    r = raster.Raster(30)
+    r = raster.Raster(raster_density)
     xl, yl, zl = r.box_linspaces(box_)
     N = len(xl) * len(yl) * len(zl)
 
@@ -40,7 +28,7 @@ def adam(max_iters=5000, beta1=0.9, beta2=0.999, epsilon=1e-10, learning_rate=1e
     gaussian_orbital /= cp.sqrt(norm_factor)
 
     v_init = cp.reshape(gaussian_orbital, (len(X) * len(Y) * len(Z), 1))
-
+    goal_gradient = GoalGradient(hamiltonian=h, x=v_init)
     # Initialize first moment (m) and second moment (v)
     m = cp.zeros_like(v_init)
     v = cp.zeros_like(v_init)
@@ -50,7 +38,7 @@ def adam(max_iters=5000, beta1=0.9, beta2=0.999, epsilon=1e-10, learning_rate=1e
     # Optimization loop with Adam
     v_curr = v_init.copy()
     for i in range(max_iters):
-        grad, rayleigh_quotient_value = gradient(v_curr, h)
+        grad, rayleigh_quotient_value = goal_gradient.gradient(v_curr, h)
 
         # Adam update
         t += 1
@@ -66,13 +54,13 @@ def adam(max_iters=5000, beta1=0.9, beta2=0.999, epsilon=1e-10, learning_rate=1e
 
         # Normalize the new vector
         v_new /= cp.linalg.norm(v_new)
-        new_grad, new_rayleigh_quotient_value = gradient(v_new, h)
+        new_grad, new_rayleigh_quotient_value = goal_gradient.gradient(v_new, h)
         diff = new_rayleigh_quotient_value - rayleigh_quotient_value
         # Check for convergence
         residual_norm = cp.linalg.norm(v_new - v_curr)
         if residual_norm < tol:
             break
-        if abs(diff) < 1e-10:
+        if abs(diff) < tol:
             print("Diff low enough:", diff)
             break
 
@@ -84,7 +72,7 @@ def adam(max_iters=5000, beta1=0.9, beta2=0.999, epsilon=1e-10, learning_rate=1e
         v_curr = v_new
 
     # Calculate the final eigenvalue
-    eigenvalue = rayleigh_quotient(v_curr, h)
+    eigenvalue = goal_gradient.objective_function(v_curr, h)
     # Print the calculated eigenvalue
     print("Calculated Eigenvalue:", eigenvalue)
     return eigenvalue, v_curr
