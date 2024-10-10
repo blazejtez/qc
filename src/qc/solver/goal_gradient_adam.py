@@ -1,10 +1,11 @@
 import time
 
-import numpy as np
 import cupy as cp
+import portion as P
 
-from qc.data.util_cub import load_cub
-from qc.hamiltonian.hamiltonian import HamiltonianOperatorCuPy
+import Praktyki.cut_box_3D as box
+import qc.hamiltonian.hamiltonian as H
+import qc.data.raster as raster
 
 ALPHA = 0.28294212105225837470023780155114
 def gram_schmidt(vectors):
@@ -56,7 +57,7 @@ class GoalGradient():
         term1 = (num / denom) - (2 * xtAx_value * x / denom ** 2)
         if self.Y is not None:
             term2 = self.gradient_lambda(x)
-            gradient = cp.concatenate((term1.T, term2.T), axis=1).T
+            gradient = term1 + term2
         else:
             gradient = term1
         return gradient
@@ -107,7 +108,7 @@ def gradient_descent_constrained(goal_gradient, x0, lambd0, lr=0.001, tol=0.005,
         # Update x
         x_new = x - lr * m_hat_x / (cp.sqrt(v_hat_x) + epsilon)
 
-        if grad_lambda is not None and lambd.size > 0:
+        if grad_lambda is not None:
             # Update biased first moment estimate for lambda
             m_lambda = beta1 * m_lambda + (1 - beta1) * grad_lambda
             # Update biased second raw moment estimate for lambda
@@ -190,28 +191,28 @@ def numerical_gradient_x(goal_gradient, x, A, lambd, epsilon=1e-8):
     return grad
 
 
+HYDROGEN_RADIUS = 10.
+ALPHA = 0.282942121052
 
+interval = P.closed(-HYDROGEN_RADIUS, HYDROGEN_RADIUS)
+box_ = box.box3D(interval, interval, interval)
+r = raster.Raster(10)
+xl, yl, zl = r.box_linspaces(box_)
+N = len(xl) * len(yl) * len(zl)
 
-# Define the grid
-N = 201
-L = 15.0
+A = H.HamiltonianOperatorCuPy(xl, yl, zl, extent=HYDROGEN_RADIUS)
 
-x = np.linspace(-L, L, N, dtype=cp.float32)
-y = np.linspace(-L, L, N, dtype=cp.float32)
-z = np.linspace(-L, L, N, dtype=cp.float32)
-sh = N**3
-X, Y, Z = cp.meshgrid(cp.array(x), cp.array(y), cp.array(z), indexing='ij')
+X, Y, Z = cp.meshgrid(cp.array(xl), cp.array(yl), cp.array(zl))
+gaussian_orbital = cp.exp(-ALPHA * (X ** 2 + Y ** 2 + Z ** 2), dtype=cp.float32)
+norm_factor = cp.sum(gaussian_orbital ** 2) * A.h ** 3
+gaussian_orbital /= cp.sqrt(norm_factor)
 
-# Compute the Gaussian-type orbital values
-gaussian_orbital = cp.exp(-ALPHA*(X**2 + Y**2 + Z**2), dtype=cp.float32)
-x0 = cp.reshape(gaussian_orbital, (len(x) * len(y) * len(z), 1))
-
-# Initialize matrix A
-A = HamiltonianOperatorCuPy(x, y, z, L)
+v_init = cp.reshape(gaussian_orbital, (len(X) * len(Y) * len(Z), 1))
+goal_gradient = GoalGradient(hamiltonian=A, x=v_init)
 
 # Find the lowest five eigenvalues
 start_time = time.time()
-eigenvalues, eigenvectors = find_lowest_eigenvalues(A, x0, num_eigenvalues=5, lr = 1e-6, tol=1e-7, max_iter = 10000)
+eigenvalues, eigenvectors = find_lowest_eigenvalues(A, v_init, num_eigenvalues=5, lr = 1e-7, tol=1e-7, max_iter = 7000)
 end_time = time.time()
 
 # Display the results
