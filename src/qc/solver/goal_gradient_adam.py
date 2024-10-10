@@ -56,7 +56,7 @@ class GoalGradient():
         xtAx_value = self.xtAx(x, A)
         term1 = (num / denom) - (2 * xtAx_value * x / denom ** 2)
         if self.Y is not None:
-            term2 = self.gradient_lambda(x)
+            term2 = self.Y.dot(lambd)
             gradient = term1 + term2
         else:
             gradient = term1
@@ -65,6 +65,7 @@ class GoalGradient():
     def gradient_lambda(self, x):
         if self.Y is not None:
             return self.Y.T.dot(x)
+
 
 def gradient_descent_constrained(goal_gradient, x0, lambd0, lr=0.001, tol=0.005, max_iter=1000):
     x = x0
@@ -173,6 +174,7 @@ def find_lowest_eigenvalues(A, initial_x, num_eigenvalues=5, lr=1e-5, tol=1e-5, 
         
         # Prepare for next iteration
         x0 = cp.random.rand(*x.shape).astype(cp.float32)
+        eigenvectors = gram_schmidt(eigenvectors)
         x0 = orthogonalize(x0, eigenvectors)
 
     return eigenvalues, eigenvectors
@@ -212,7 +214,7 @@ goal_gradient = GoalGradient(hamiltonian=A, x=v_init)
 
 # Find the lowest five eigenvalues
 start_time = time.time()
-eigenvalues, eigenvectors = find_lowest_eigenvalues(A, v_init, num_eigenvalues=5, lr = 1e-7, tol=1e-7, max_iter = 7000)
+eigenvalues, eigenvectors = find_lowest_eigenvalues(A, v_init, num_eigenvalues=5, lr = 1e-4, tol=1e-4, max_iter = 7000)
 end_time = time.time()
 
 # Display the results
