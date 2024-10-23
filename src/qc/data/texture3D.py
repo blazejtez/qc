@@ -58,7 +58,7 @@ class Texture3D:
         return texture_obj
 
     def texture_from_ndarray(self, array):
-        array = cp.asarray(array)
+        array = cp.asarray(array, dtype=cp.float32)
 
         channel_descriptor_input = cp.cuda.texture.ChannelFormatDescriptor(
             Texture3D.NUMBITS, 0, 0, 0, cp.cuda.runtime.cudaChannelFormatKindFloat)
@@ -66,7 +66,6 @@ class Texture3D:
         cuda_array_input = cp.cuda.texture.CUDAarray(channel_descriptor_input,
                                                      self.x_len, self.y_len,
                                                      self.z_len)
-
         cuda_array_input.copy_from(array)
 
         resource_descriptor_input = cp.cuda.texture.ResourceDescriptor(
