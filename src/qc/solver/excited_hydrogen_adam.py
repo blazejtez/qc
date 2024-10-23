@@ -6,7 +6,7 @@ import portion as P
 import Praktyki.cut_box_3D as box
 import qc.hamiltonian.hamiltonian as H
 import qc.data.raster as raster
-from qc.data.util_cub import load_cub
+from qc.data.util_cub import load_cub, save_cub
 
 ALPHA = 0.28294212105225837470023780155114
 def gram_schmidt(vectors):
@@ -176,6 +176,14 @@ def find_lowest_eigenvalues(A, initial_x, num_eigenvalues=5, lr_x=1e-5, lr_lambd
         # Store the eigenvector and eigenvalue
         eigenvectors.append(x)
         eigenvalues.append(eigenvalue)
+
+        eigenvectors_path_template = "eigenvector_{i}.cub"
+        eigenvalues_path = "eigenvalues.txt"
+        file_path = eigenvectors_path_template.format(i=i + 1)
+        save_cub(file_path, cp.asnumpy(eigenvectors[-1]))
+        with open(eigenvalues_path, "w") as f:
+            for idx, eigenvalue in enumerate(eigenvalues):
+                f.write(f"Eigenvalue {idx + 1}: {eigenvalue}\n")
         
         # Prepare for next iteration
         x0 = cp.random.rand(*x.shape).astype(cp.float32)
