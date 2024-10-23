@@ -224,8 +224,8 @@ lambd = cp.asarray([[-0.49654406]], dtype=cp.float32)
 
 # Find the lowest five eigenvalues
 start_time = time.time()
-eigenvalues, eigenvectors = find_lowest_eigenvalues(A, v_init, num_eigenvalues=5, lr_x=1e-6, lr_lambda=1e-2,
-                                                    tol=1e-10, max_iter=7000, initial_Y=Y, initial_lambd=lambd)
+eigenvalues, eigenvectors = find_lowest_eigenvalues(A, v_init, num_eigenvalues=5, lr_x=1e-7, lr_lambda=1e-3,
+                                                    tol=1e-10, max_iter=100000, initial_Y=Y, initial_lambd=lambd)
 end_time = time.time()
 
 # Display the results
