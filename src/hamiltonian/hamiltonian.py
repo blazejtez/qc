@@ -81,6 +81,7 @@ class HamiltonianOperatorCuPy:
 
         self.t = T.Texture3D(self.x_len, self.y_len, self.z_len)
         self.s = S.Surface(self.x_len, self.y_len, self.z_len)
+        self.dtype = cp.float32
 
     def pre(self, v):
         v_cube = v.reshape((self.x_len, self.y_len, self.z_len))
@@ -115,7 +116,7 @@ class HamiltonianOperatorCuPy:
         for i in range(cp.size(V, 1)):
             v = V[:, i]
             v_out = self.matvec(v)
-            V_out[:, i] = v_out
+            V_out[:, i] = v_out.reshape(-1)
         return V_out
 
 if __name__ == "__main__":
