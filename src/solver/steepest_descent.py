@@ -1,7 +1,5 @@
-import time
-import numpy as np
 import cupy as cp
-from qc.hamiltonian.hamiltonian import HamiltonianOperatorCuPy
+from hamiltonian.hamiltonian import HamiltonianOperatorCuPy
 
 
 # Definiujemy funkcję celu: (x^T A x) / (x^T x)

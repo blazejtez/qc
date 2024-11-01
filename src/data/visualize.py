@@ -1,5 +1,5 @@
 import numpy as np
-from qc.data_structure.util_cub import load_basic
+from data_structure.util_cub import load_basic
 from mayavi import mlab
 
 Phi = load_basic("h1xx11.cub").get()

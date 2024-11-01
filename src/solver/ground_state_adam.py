@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import cupy as cp
-import numpy as np
 import portion as P
 
 import Praktyki.cut_box_3D as box
-import qc.hamiltonian.hamiltonian as H
-import qc.data_structure.raster as raster
+import hamiltonian.hamiltonian as H
+import data_structure.raster as raster
 from rayleigh_quotient import GoalGradient
 
 

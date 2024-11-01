@@ -9,12 +9,9 @@ from typing import Dict, Tuple
 import cupy as cp
 # import matplotlib.pyplot as plt
 import numpy as np
-from cupy.cuda import texture
-from matplotlib import pyplot as plt
-from numba import jit, prange
-import qc.data_structure.surface as S
-import qc.data_structure.texture3D as T
-from qc.demo.laplacian_visualisation import laplacian_gto, plot_laplacian_gto
+import data_structure.surface as S
+import data_structure.texture3D as T
+from demo.laplacian_visualisation import plot_laplacian_gto
 
 ALPHA = 0.28294212105225837470023780155114
 # ALPHA = 1

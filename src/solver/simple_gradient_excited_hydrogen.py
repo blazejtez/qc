@@ -3,7 +3,7 @@ import time
 import numpy as np
 import cupy as cp
 
-from qc.hamiltonian.hamiltonian import HamiltonianOperatorCuPy
+from hamiltonian.hamiltonian import HamiltonianOperatorCuPy
 
 ALPHA = 0.28294212105225837470023780155114
 

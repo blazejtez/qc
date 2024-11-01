@@ -4,9 +4,8 @@ import time
 
 import scipy.linalg
 import cupy as cp
-from qc.data_structure import raster
-from qc.hamiltonian.hamiltonian import HamiltonianOperatorCuPy
-from qc.data_structure.raster import *
+from data_structure import raster
+from hamiltonian.hamiltonian import HamiltonianOperatorCuPy
 
 
 class HydrogenLOBPCG:

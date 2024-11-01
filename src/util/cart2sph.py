@@ -3,7 +3,7 @@
 
 import numexpr as ne
 import numpy as np
-from qc.data_structure import raster
+from data_structure import raster
 import portion as P
 
 

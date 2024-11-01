@@ -3,14 +3,14 @@
 import argparse
 from typing import Tuple
 
-from qc.util import contour
+from util import contour
 import numpy as np
 import portion as P
 from mayavi.mlab import contour3d, show
 
 import Praktyki.cut_box_3D as box
-import qc.psi.hydrogenpsi as hydrogenpsi
-import qc.data_structure.raster as raster
+import psi.hydrogenpsi as hydrogenpsi
+import data_structure.raster as raster
 
 
 def analytical(quantum_numbers: Tuple, box: box.box3D, raster_density=50):
