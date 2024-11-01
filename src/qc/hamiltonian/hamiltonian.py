@@ -33,7 +33,6 @@ class HydrogenHamiltonian:
         hy = self.yl[1] - self.yl[0]
         hz = self.zl[1] - self.zl[0]
         self.h = hx
-        print("h:", self.h)
         # check if the grid cell is cubic
         assert (abs(hy - hx) < 1e-7)
         assert (abs(hz - hx) < 1e-7)
@@ -65,7 +64,6 @@ class HamiltonianOperatorCuPy:
         hy = self.y_linspace[1] - self.y_linspace[0]
         hz = self.z_linspace[1] - self.z_linspace[0]
         self.h = hx
-        print("h:", self.h)
         # check if the grid cell is cubic
         assert (abs(hy - hx) < 1e-7)
         assert (abs(hz - hx) < 1e-7)
