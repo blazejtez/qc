@@ -180,7 +180,8 @@ def find_lowest_eigenvalues(A, initial_x, num_eigenvalues=5, lr_x=1e-5, lr_lambd
         eigenvectors_path_template = "eigenvector_{i}.cub"
         eigenvalues_path = "eigenvalues.txt"
         file_path = eigenvectors_path_template.format(i=i + 1)
-        save_cub(file_path, cp.asnumpy(eigenvectors[-1]))
+
+        save_cub(file_path, cp.asnumpy(eigenvectors[-1].reshape((len(xl), len(yl), len(zl)))))
         with open(eigenvalues_path, "w") as f:
             for idx, eigenvalue in enumerate(eigenvalues):
                 f.write(f"Eigenvalue {idx + 1}: {eigenvalue}\n")
@@ -232,8 +233,8 @@ lambd = cp.asarray([[-0.49654406]], dtype=cp.float32)
 
 # Find the lowest five eigenvalues
 start_time = time.time()
-eigenvalues, eigenvectors = find_lowest_eigenvalues(A, v_init, num_eigenvalues=5, lr_x=1e-7, lr_lambda=1e-3,
-                                                    tol=1e-10, max_iter=100000, initial_Y=Y, initial_lambd=lambd)
+eigenvalues, eigenvectors = find_lowest_eigenvalues(A, v_init, num_eigenvalues=4, lr_x=1e-7, lr_lambda=1e-3,
+                                                    tol=1e-10, max_iter=300000, initial_Y=Y, initial_lambd=lambd)
 end_time = time.time()
 
 # Display the results

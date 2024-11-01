@@ -210,12 +210,12 @@ def numerical_gradient_x(goal_gradient, x, A, lambd, epsilon=1e-8):
 
 
 print("Iteration number, eigenvalue, norm change, constraint violation")
-HYDROGEN_RADIUS = 5.
+HYDROGEN_RADIUS = 10.
 ALPHA = 0.282942121052
 
 interval = P.closed(-HYDROGEN_RADIUS, HYDROGEN_RADIUS)
 box_ = box.box3D(interval, interval, interval)
-r = raster.Raster(50)
+r = raster.Raster(10)
 xl, yl, zl = r.box_linspaces(box_)
 N = len(xl) * len(yl) * len(zl)
 
