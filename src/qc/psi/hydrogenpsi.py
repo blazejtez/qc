@@ -10,7 +10,7 @@ from sympy.physics.hydrogen import E_nl, Psi_nlm, R_nl
 from sympy.utilities.lambdify import lambdify
 
 import Praktyki.cut_box_3D as box
-import qc.data.raster as raster
+import qc.data_structure.raster as raster
 
 
 def analytical(quantum_numbers: Tuple, box: box.box3D, raster_density=50):

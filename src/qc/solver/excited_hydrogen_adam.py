@@ -1,12 +1,13 @@
 import time
 
 import cupy as cp
+import numpy as np
 import portion as P
 
 import Praktyki.cut_box_3D as box
 import qc.hamiltonian.hamiltonian as H
-import qc.data.raster as raster
-from qc.data.util_cub import load_cub, save_cub
+import qc.data_structure.raster as raster
+from qc.data_structure.util_cub import load_basic, save_cub
 
 ALPHA = 0.28294212105225837470023780155114
 def gram_schmidt(vectors):
@@ -178,7 +179,7 @@ def find_lowest_eigenvalues(A, initial_x, num_eigenvalues=5, lr_x=1e-5, lr_lambd
         eigenvalues.append(eigenvalue)
 
         eigenvectors_path_template = "eigenvector_{i}.cub"
-        eigenvalues_path = "eigenvalues.txt"
+        eigenvalues_path = "../data/eigenvalues.txt"
         file_path = eigenvectors_path_template.format(i=i + 1)
 
         save_cub(file_path, cp.asnumpy(eigenvectors[-1].reshape((len(xl), len(yl), len(zl)))))
@@ -227,7 +228,7 @@ A = H.HamiltonianOperatorCuPy(xl, yl, zl, extent=HYDROGEN_RADIUS)
 v_init = cp.random.random((N, 1))
 goal_gradient = GoalGradient(hamiltonian=A, x=v_init)
 
-Y = load_cub("h100.cub")
+Y = load_basic("h100.cub")
 Y = cp.reshape(Y, (N, 1), )
 lambd = cp.asarray([[-0.49654406]], dtype=cp.float32)
 

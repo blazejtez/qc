@@ -5,8 +5,8 @@
 import unittest
 
 import numpy as np
-import qc.data.texture3D as T
-import qc.data.surface as S
+import qc.data_structure.texture3D as T
+import qc.data_structure.surface as S
 import qc.hamiltonian.hamiltonian as H
 import cupy as cp
 class MainTest(unittest.TestCase):

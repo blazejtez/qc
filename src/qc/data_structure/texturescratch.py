@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 """Checking working of Texture and Surface classes"""
 import cupy as cp
-import qc.data.surface as S
-import qc.data.texture3D as T
+import qc.data_structure.surface as S
+import qc.data_structure.texture3D as T
 
 test_kernel = cp.RawKernel(
     r'''extern "C" __global__ void test(cudaTextureObject_t texture_input,

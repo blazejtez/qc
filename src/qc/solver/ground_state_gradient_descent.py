@@ -7,7 +7,7 @@ import time
 
 import Praktyki.cut_box_3D as box
 import qc.hamiltonian.hamiltonian as H
-import qc.data.raster as raster
+import qc.data_structure.raster as raster
 from rayleigh_quotient import GoalGradient
 
 # Gradient descent using the GoalGradient class

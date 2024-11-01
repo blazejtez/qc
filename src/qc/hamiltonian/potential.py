@@ -6,8 +6,8 @@ import numpy as np
 import cupy as cp
 from matplotlib import pyplot as plt
 
-import qc.data.surface as S
-import qc.data.texture3D as T
+import qc.data_structure.surface as S
+import qc.data_structure.texture3D as T
 
 _eval_potential_kernel = cp.RawKernel(
     r'''extern "C" __global__ void potential(cudaTextureObject_t texture_input,
@@ -121,7 +121,7 @@ class Potential:
 
 
 if __name__ == "__main__":
-    # Step 3: Create input data
+    # Step 3: Create input data_structure
     XLEN, YLEN, ZLEN = 601, 601, 601  # Dimensions of the input arrays and grid
     Z1, Z2 = 1.0, 1.0  # Charges in atomic units
     eps = 1e-10  # Small epsilon to prevent division by zero

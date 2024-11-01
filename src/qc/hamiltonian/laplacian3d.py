@@ -12,8 +12,8 @@ import numpy as np
 from cupy.cuda import texture
 from matplotlib import pyplot as plt
 from numba import jit, prange
-import qc.data.surface as S
-import qc.data.texture3D as T
+import qc.data_structure.surface as S
+import qc.data_structure.texture3D as T
 from qc.demo.laplacian_visualisation import laplacian_gto, plot_laplacian_gto
 
 ALPHA = 0.28294212105225837470023780155114

@@ -10,7 +10,7 @@ from mayavi.mlab import contour3d, show
 
 import Praktyki.cut_box_3D as box
 import qc.psi.hydrogenpsi as hydrogenpsi
-import qc.data.raster as raster
+import qc.data_structure.raster as raster
 
 
 def analytical(quantum_numbers: Tuple, box: box.box3D, raster_density=50):
