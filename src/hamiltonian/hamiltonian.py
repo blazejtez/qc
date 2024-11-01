@@ -2,11 +2,11 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-from qc.hamiltonian.potential import *
-from qc.hamiltonian.laplacian3d import Laplacian3D
-from qc.hamiltonian.potential import Potential
-import qc.data_structure.surface as S
-import qc.data_structure.texture3D as T
+import cupy as cp
+from hamiltonian.laplacian3d import Laplacian3D
+from hamiltonian.potential import Potential
+import data_structure.surface as S
+import data_structure.texture3D as T
 
 class HydrogenHamiltonian:
     BLOCKSIZE = 8
