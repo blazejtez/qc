@@ -6,7 +6,7 @@ import portion as P
 import Praktyki.cut_box_3D as box
 import hamiltonian.hamiltonian as H
 import data_structure.raster as raster
-from rayleigh_quotient import GoalGradient
+from goal.rayleigh_quotient import GoalGradient
 
 
 def adam(raster_density=10, max_iters=5000, beta1=0.9, beta2=0.999, epsilon=1e-10, learning_rate=1e-5, tol=1e-10):
