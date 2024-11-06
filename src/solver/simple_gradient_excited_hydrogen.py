@@ -4,48 +4,10 @@ import numpy as np
 import cupy as cp
 
 from hamiltonian.hamiltonian import HamiltonianOperatorCuPy
+from goal.rayleigh_constrained import GoalGradient
 
 ALPHA = 0.28294212105225837470023780155114
 
-class GoalGradient():
-    def __init__(self, hamiltonian, x, Y=None):
-        self.hamiltonian = hamiltonian
-        self.x = x
-        self.Y = Y  # Matrix of previously found eigenvectors
-        self.xtAx_cached = None
-        self.xtx_cached = None
-
-    def xtAx(self, x, A):
-        if x is self.x and A is self.hamiltonian and self.xtAx_cached is not None:
-            return self.xtAx_cached
-        self.xtAx_cached = x.T.dot(A.matvec(x))
-        return self.xtAx_cached
-
-    def xtx(self, x):
-        if x is self.x and self.xtx_cached is not None:
-            return self.xtx_cached
-        self.xtx_cached = x.T.dot(x)
-        return self.xtx_cached
-
-    def objective_function(self, x, A, lambd):
-        if self.Y is not None and lambd is not None:
-            return self.xtAx(x, A) / self.xtx(x) + lambd.T.dot(self.Y.T.dot(x))
-        else:
-            return self.xtAx(x, A) / self.xtx(x)
-
-    def gradient_x(self, x, A, lambd):
-        num = 2 * A.matvec(x)
-        denom = self.xtx(x)
-        xtAx_value = self.xtAx(x, A)
-        if self.Y is not None:
-            gradient = (num / denom) - (2 * xtAx_value * x / denom ** 2) + self.Y.dot(lambd)
-        else:
-            gradient = (num / denom) - (2 * xtAx_value * x / denom ** 2)
-        return gradient
-
-    def gradient_lambda(self, x):
-        if self.Y is not None:
-            return self.Y.T.dot(x)
 def gradient_descent_constrained(goal_gradient, x0, lambd0, lr=0.0001, tol=2.3e-5, max_iter=1000000000):
     x = x0
     lambd = lambd0

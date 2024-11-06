@@ -7,66 +7,9 @@ import Praktyki.cut_box_3D as box
 import hamiltonian.hamiltonian as H
 import data_structure.raster as raster
 from data_structure.util_cub import load_basic, save_cub
+from goal.rayleigh_constrained import GoalGradient, gram_schmidt, orthogonalize
 
 ALPHA = 0.28294212105225837470023780155114
-def gram_schmidt(vectors):
-    orthogonal_vectors = []
-    for v in vectors:
-        w = v.copy()
-        for u in orthogonal_vectors:
-            w -= u.dot(u.T.dot(v))
-        w /= cp.linalg.norm(w)
-        orthogonal_vectors.append(w)
-    return orthogonal_vectors
-
-def orthogonalize(x0, eigenvectors):
-    for vec in eigenvectors:
-        x0 -= vec.dot(vec.T.dot(x0))
-    x0 /= cp.linalg.norm(x0)
-    return x0
-
-class GoalGradient():
-    def __init__(self, hamiltonian, x, Y=None):
-        self.hamiltonian = hamiltonian
-        self.x = x
-        self.Y = Y  # Matrix of previously found eigenvectors
-        self.xtAx_cached = None
-        self.xtx_cached = None
-
-    def xtAx(self, x, A):
-        if x is self.x and A is self.hamiltonian and self.xtAx_cached is not None:
-            return self.xtAx_cached
-        self.xtAx_cached = x.T.dot(A.matvec(x))
-        return self.xtAx_cached
-
-    def xtx(self, x):
-        if x is self.x and self.xtx_cached is not None:
-            return self.xtx_cached
-        self.xtx_cached = x.T.dot(x)
-        return self.xtx_cached
-
-    def objective_function(self, x, A, lambd):
-        if self.Y is not None and lambd is not None:
-            return self.xtAx(x, A) / self.xtx(x) + lambd.T.dot(self.Y.T.dot(x))
-        else:
-            return self.xtAx(x, A) / self.xtx(x)
-
-    def gradient_x(self, x, A, lambd):
-        num = 2 * A.matvec(x)
-        denom = self.xtx(x)
-        xtAx_value = self.xtAx(x, A)
-        term1 = (num / denom) - (2 * xtAx_value * x / denom ** 2)
-        if self.Y is not None:
-            term2 = self.Y.dot(lambd)
-            gradient = term1 + term2
-        else:
-            gradient = term1
-        return gradient
-
-    def gradient_lambda(self, x):
-        if self.Y is not None:
-            return self.Y.T.dot(x)
-
 
 def gradient_descent_constrained(goal_gradient, x0, lambd0, lr_x=0.001, lr_lambda=0.1, tol=0.005, max_iter=1000):
     x = x0
@@ -181,7 +124,7 @@ def find_lowest_eigenvalues(A, initial_x, num_eigenvalues=5, lr_x=1e-5, lr_lambd
         eigenvalues_path = "../data/eigenvalues.txt"
         file_path = eigenvectors_path_template.format(i=i + 1)
 
-        save_cub(file_path, cp.asnumpy(eigenvectors[-1].reshape((len(xl), len(yl), len(zl)))))
+        save_cub(file_path, eigenvectors[-1].reshape((len(xl), len(yl), len(zl))))
         with open(eigenvalues_path, "w") as f:
             for idx, eigenvalue in enumerate(eigenvalues):
                 f.write(f"Eigenvalue {idx + 1}: {eigenvalue}\n")
@@ -227,7 +170,7 @@ A = H.HamiltonianOperatorCuPy(xl, yl, zl, extent=HYDROGEN_RADIUS)
 v_init = cp.random.random((N, 1))
 goal_gradient = GoalGradient(hamiltonian=A, x=v_init)
 
-Y = load_basic("h100.cub")
+Y = load_basic("../data/h100.cub")
 Y = cp.reshape(Y, (N, 1), )
 lambd = cp.asarray([[-0.49654406]], dtype=cp.float32)
 
