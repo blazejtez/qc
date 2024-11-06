@@ -1,4 +1,4 @@
-class GoalGradient():
+class GoalGradient:
     def __init__(self, hamiltonian, x):
         self.hamiltonian = hamiltonian
         self.x = x
