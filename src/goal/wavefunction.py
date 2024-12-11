@@ -1,51 +1,80 @@
 import cupy as cp
 def hydrogen_1s(N):
-    x = cp.linspace(-10, 10, N)
-    y = cp.linspace(-10, 10, N)
-    z = cp.linspace(-10, 10, N)
+    x = cp.linspace(-32, 32, N)
+    y = cp.linspace(-32, 32, N)
+    z = cp.linspace(-32, 32, N)
     X, Y, Z_grid = cp.meshgrid(x, y, z, indexing='ij')
     r = cp.sqrt(X**2 + Y**2 + Z_grid**2)
     return cp.ravel(cp.exp(-r))
 
 def hydrogen_2s(N):
-    x = cp.linspace(-10, 10, N)
-    y = cp.linspace(-10, 10, N)
-    z = cp.linspace(-10, 10, N)
+    x = cp.linspace(-32, 32, N)
+    y = cp.linspace(-32, 32, N)
+    z = cp.linspace(-32, 32, N)
     X, Y, Z_grid = cp.meshgrid(x, y, z, indexing='ij')
     r = cp.sqrt(X**2 + Y**2 + Z_grid**2)
-    return cp.ravel(cp.exp(-r / 2) * (2 - r))
+    return cp.ravel(cp.exp(-r/2) * (2 - r))
 
 def hydrogen_2px(N):
-    x = cp.linspace(-10, 10, N)
-    y = cp.linspace(-10, 10, N)
-    z = cp.linspace(-10, 10, N)
+    x = cp.linspace(-32, 32, N)
+    y = cp.linspace(-32, 32, N)
+    z = cp.linspace(-32, 32, N)
     X, Y, Z_grid = cp.meshgrid(x, y, z, indexing='ij')
     r = cp.sqrt(X**2 + Y**2 + Z_grid**2)
     return cp.ravel(cp.exp(-r / 2) * X)
 
-# Similarly, for other wavefunctions:
+def hydrogen_2py(N):
+    x = cp.linspace(-32, 32, N)
+    y = cp.linspace(-32, 32, N)
+    z = cp.linspace(-32, 32, N)
+    X, Y, Z_grid = cp.meshgrid(x, y, z, indexing='ij')
+    r = cp.sqrt(X**2 + Y**2 + Z_grid**2)
+    return cp.ravel(cp.exp(-r / 2) * Y)
+
+def hydrogen_2pz(N):
+    x = cp.linspace(-32, 32, N)
+    y = cp.linspace(-32, 32, N)
+    z = cp.linspace(-32, 32, N)
+    X, Y, Z_grid = cp.meshgrid(x, y, z, indexing='ij')
+    r = cp.sqrt(X**2 + Y**2 + Z_grid**2)
+    return cp.ravel(cp.exp(-r / 2) * Z_grid)
 
 def hydrogen_3s(N):
-    x = cp.linspace(-10, 10, N)
-    y = cp.linspace(-10, 10, N)
-    z = cp.linspace(-10, 10, N)
+    x = cp.linspace(-32, 32, N)
+    y = cp.linspace(-32, 32, N)
+    z = cp.linspace(-32, 32, N)
     X, Y, Z_grid = cp.meshgrid(x, y, z, indexing='ij')
     r = cp.sqrt(X**2 + Y**2 + Z_grid**2)
-    return cp.ravel(cp.exp(-r / 3) *
-                    ((27 - 18 * r) + 2 * r**2))
+    return cp.ravel(cp.exp(-r / 3) * (27 - 18 * r + 2 * r**2))
 
 def hydrogen_3px(N):
-    x = cp.linspace(-10, 10, N)
-    y = cp.linspace(-10, 10, N)
-    z = cp.linspace(-10, 10, N)
+    x = cp.linspace(-32, 32, N)
+    y = cp.linspace(-32, 32, N)
+    z = cp.linspace(-32, 32, N)
     X, Y, Z_grid = cp.meshgrid(x, y, z, indexing='ij')
     r = cp.sqrt(X**2 + Y**2 + Z_grid**2)
-    return cp.ravel(cp.exp(-r / 3) * (6 - r) * X)
+    return cp.ravel(cp.exp(r / 3) * (6 - r) * X)
+
+def hydrogen_3py(N):
+    x = cp.linspace(-32, 32, N)
+    y = cp.linspace(-32, 32, N)
+    z = cp.linspace(-32, 32, N)
+    X, Y, Z_grid = cp.meshgrid(x, y, z, indexing='ij')
+    r = cp.sqrt(X**2 + Y**2 + Z_grid**2)
+    return cp.ravel(cp.exp(r / 3) * (6 - r) * Y)
+
+def hydrogen_3pz(N):
+    x = cp.linspace(-32, 32, N)
+    y = cp.linspace(-32, 32, N)
+    z = cp.linspace(-32, 32, N)
+    X, Y, Z_grid = cp.meshgrid(x, y, z, indexing='ij')
+    r = cp.sqrt(X**2 + Y**2 + Z_grid**2)
+    return cp.ravel(cp.exp(r / 3) * (6 - r) * Z_grid)
 
 def hydrogen_3d_3z2_r2(N):
-    x = cp.linspace(-10, 10, N)
-    y = cp.linspace(-10, 10, N)
-    z = cp.linspace(-10, 10, N)
+    x = cp.linspace(-32, 32, N)
+    y = cp.linspace(-32, 32, N)
+    z = cp.linspace(-32, 32, N)
     X, Y, Z_grid = cp.meshgrid(x, y, z, indexing='ij')
     r = cp.sqrt(X**2 + Y**2 + Z_grid**2)
     return cp.ravel(cp.exp(-r / 3) * (3 * Z_grid**2 - r**2))
