@@ -53,7 +53,7 @@ def hydrogen_3px(N):
     z = cp.linspace(-40, 40, N)
     X, Y, Z_grid = cp.meshgrid(x, y, z, indexing='ij')
     r = cp.sqrt(X**2 + Y**2 + Z_grid**2)
-    return cp.ravel(cp.exp(r / 3) * (6 - r) * X)
+    return cp.ravel(cp.exp(-r / 3) * (6 - r) * X)
 
 def hydrogen_3py(N):
     x = cp.linspace(-40, 40, N)
@@ -61,7 +61,7 @@ def hydrogen_3py(N):
     z = cp.linspace(-40, 40, N)
     X, Y, Z_grid = cp.meshgrid(x, y, z, indexing='ij')
     r = cp.sqrt(X**2 + Y**2 + Z_grid**2)
-    return cp.ravel(cp.exp(r / 3) * (6 - r) * Y)
+    return cp.ravel(cp.exp(-r / 3) * (6 - r) * Y)
 
 def hydrogen_3pz(N):
     x = cp.linspace(-40, 40, N)
@@ -69,7 +69,7 @@ def hydrogen_3pz(N):
     z = cp.linspace(-40, 40, N)
     X, Y, Z_grid = cp.meshgrid(x, y, z, indexing='ij')
     r = cp.sqrt(X**2 + Y**2 + Z_grid**2)
-    return cp.ravel(cp.exp(r / 3) * (6 - r) * Z_grid)
+    return cp.ravel(cp.exp(-r / 3) * (6 - r) * Z_grid)
 
 def hydrogen_3d_3z2_r2(N):
     x = cp.linspace(-40, 40, N)
