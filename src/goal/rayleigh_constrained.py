@@ -17,22 +17,21 @@ def orthogonalize(x0, eigenvectors):
     return x0
 
 
-class GoalGradient:
-    def __init__(self, hamiltonian, x, Y=None):
-        self.hamiltonian = hamiltonian
+class GoalGradient():
+    def __init__(self, A, x, Y=None):
+        self.A = A
         self.x = x
-        self.Y = Y  # Matrix of previously found eigenvectors
+        self.Y = Y
         self.xtAx_cached = None
         self.xtx_cached = None
         self._lambd_t_Y_t_x_cached = None
 
 
-    def xtAx(self, x, A):
-        if x is self.x and A is self.hamiltonian and self.xtAx_cached is not None:
+    def xtAx(self, x):
+        if x is self.x and self.xtAx_cached is not None:
             return self.xtAx_cached
-        self.xtAx_cached = x.T.dot(A.matvec(x))
+        self.xtAx_cached = x.T.dot(self.A.matvec(x))
         self.x = x
-        self.A = A
         return self.xtAx_cached
 
     def xtx(self, x):
@@ -42,16 +41,16 @@ class GoalGradient:
         self.x = x
         return self.xtx_cached
 
-    def objective_function(self, x, A, lambd):
+    def objective_function(self, x, lambd):
         if self.Y is not None and lambd is not None:
-            return self.xtAx(x, A) / self.xtx(x) + lambd.T.dot(self.Y.T.dot(x))
+            return self.xtAx(x) / self.xtx(x) + lambd.T.dot(self.Y.T.dot(x))
         else:
-            return self.xtAx(x, A) / self.xtx(x)
+            return self.xtAx(x) / self.xtx(x)
 
-    def gradient_x(self, x, A, lambd):
-        num = 2 * A.matvec(x)
+    def gradient_x(self, x, lambd):
+        num = 2 * self.A.matvec(x)
         denom = self.xtx(x)
-        xtAx_value = self.xtAx(x, A)
+        xtAx_value = self.xtAx(x)
         term1 = (num / denom) - (2 * xtAx_value * x / denom ** 2)
         if self.Y is not None:
             term2 = self.Y.dot(lambd)
