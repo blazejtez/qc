@@ -5,8 +5,8 @@ import portion as P
 
 import Praktyki.cut_box_3D as box
 import hamiltonian.hamiltonian as H
-import data.raster as raster
-from data import save_cub
+import data_structure.raster as raster
+from data_structure.util_cub import save_basic, load_basic
 
 ALPHA = 0.28294212105225837470023780155114
 def gram_schmidt(vectors):
@@ -75,7 +75,7 @@ def gradient_descent_constrained(goal_gradient, x0, lambd0, lr_x=0.001, lr_lambd
 
     # Adam optimizer parameters
     beta1 = 0.9
-    beta2 = 0.999
+    beta2 = 0.99
     epsilon = 1e-8
 
     # Initialize first and second moments
@@ -131,12 +131,12 @@ def gradient_descent_constrained(goal_gradient, x0, lambd0, lr_x=0.001, lr_lambd
 
         # Compute the eigenvalue (objective function value)
         eigenvalue = goal_gradient.objective_function(x_new, A, lambd_new)
-        
+        '''
         if abs(prev_eigenvalue - eigenvalue) < tol:
             print("Eigenvalue converged:",abs(prev_eigenvalue - eigenvalue) )
             time.sleep(5)
             break
-
+        '''
 
         # Check convergence
         if cp.linalg.norm(x_new - x) < tol and (lambd is None or cp.linalg.norm(lambd_new - lambd) < tol):
@@ -144,7 +144,7 @@ def gradient_descent_constrained(goal_gradient, x0, lambd0, lr_x=0.001, lr_lambd
             break
 
         # Iteration number, eigenvalue, norm change, constraint violation
-        print(f"{i:6d}, {eigenvalue[0, 0]:.5f}, {cp.linalg.norm(x_new - x):.5f}, {constraint_violation:.5f}")
+        print(f"{i:6d}, {eigenvalue[0, 0]:.7f}, {cp.linalg.norm(x_new - x):.7f}, {constraint_violation:.7f}")
         # Update variables for next iteration
         x = x_new
         lambd = lambd_new
@@ -183,7 +183,7 @@ def find_lowest_eigenvalues(A, initial_x, num_eigenvalues=5, lr_x=1e-5, lr_lambd
         eigenvalues_path = "eigenvalues.txt"
         file_path = eigenvectors_path_template.format(i=i + 1)
 
-        save_cub(file_path, cp.asnumpy(eigenvectors[-1].reshape((len(xl), len(yl), len(zl)))))
+        save_basic(file_path, cp.asnumpy(eigenvectors[-1].reshape((len(xl), len(yl), len(zl)))))
         with open(eigenvalues_path, "w") as f:
             for idx, eigenvalue in enumerate(eigenvalues):
                 f.write(f"Eigenvalue {idx + 1}: {eigenvalue}\n")
@@ -210,12 +210,12 @@ def numerical_gradient_x(goal_gradient, x, A, lambd, epsilon=1e-8):
 
 
 print("Iteration number, eigenvalue, norm change, constraint violation")
-HYDROGEN_RADIUS = 10.
+HYDROGEN_RADIUS = 20.
 ALPHA = 0.282942121052
 
 interval = P.closed(-HYDROGEN_RADIUS, HYDROGEN_RADIUS)
 box_ = box.box3D(interval, interval, interval)
-r = raster.Raster(10)
+r = raster.Raster(5)
 xl, yl, zl = r.box_linspaces(box_)
 N = len(xl) * len(yl) * len(zl)
 
@@ -229,17 +229,18 @@ A = H.HamiltonianOperatorCuPy(xl, yl, zl, extent=HYDROGEN_RADIUS)
 # v_init = cp.reshape(gaussian_orbital, (len(X) * len(Y) * len(Z), 1))
 v_init = cp.random.random((N, 1))
 goal_gradient = GoalGradient(hamiltonian=A, x=v_init)
-'''
-Y1 = load_cub("h100.cub")
+
+Y1 = load_basic("../data/h100.cub")
 Y1 = cp.reshape(Y1, (N, 1), )
-lambd = [cp.asarray([[-0.49654406]], dtype=cp.float32),
+lambd = [cp.asarray([[-0.49654406]], dtype=cp.float32)]
+''',
          cp.asarray([[-0.12177081]], dtype=cp.float32),
          cp.asarray([[-0.11862135]], dtype=cp.float32),
          cp.asarray([[-0.12432906]], dtype=cp.float32),
          cp.asarray([[-0.12279524]], dtype=cp.float32),
          cp.asarray([[-0.02790804]], dtype=cp.float32),
          cp.asarray([[-0.03419532]], dtype=cp.float32),
-         
+     
 Y2 = load_cub("h1xx.cub")
 Y2 = Y2.reshape((N,1), )
 Y3 = load_cub("h1xx2.cub")
@@ -254,15 +255,15 @@ Y7 = load_cub("h1xx6.cub")
 Y7 = Y5.reshape((N,1), )
 Y8 = load_cub("h1xx7.cub")
 Y8 = Y5.reshape((N,1), )
-
-Y = [Y1, Y2, Y3, Y4, Y5, Y6, Y7, Y8]
 '''
-Y=None
-lambd=None 
+Y = [Y1]#, Y2, Y3, Y4, Y5, Y6, Y7, Y8]
+
+#Y=None
+#lambd=None 
 # Find the lowest five eigenvalues
 start_time = time.time()
-eigenvalues, eigenvectors = find_lowest_eigenvalues(A, v_init, num_eigenvalues=5, lr_x=1e-7, lr_lambda=1e-3,
-                                                    tol=1e-10, max_iter=300000, initial_Y=Y, initial_lambd=lambd)
+eigenvalues, eigenvectors = find_lowest_eigenvalues(A, v_init, num_eigenvalues=3, lr_x=1e-6, lr_lambda=1e-3,
+                                                    tol=1e-10, max_iter=30000, initial_Y=Y, initial_lambd=lambd)
 end_time = time.time()
 
 # Display the results
