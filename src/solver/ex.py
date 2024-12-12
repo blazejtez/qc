@@ -1,11 +1,8 @@
 import time
 
 import cupy as cp
-import portion as P
 
-import Praktyki.cut_box_3D as box
 import hamiltonian.hamiltonian as H
-import data_structure.raster as raster
 from data_structure.util_cub import save_basic, load_basic
 
 ALPHA = 0.28294212105225837470023780155114
@@ -195,28 +192,12 @@ def find_lowest_eigenvalues(A, initial_x, num_eigenvalues=5, lr_x=1e-5, lr_lambd
 
     return eigenvalues, eigenvectors
 
-
-def numerical_gradient_x(goal_gradient, x, A, lambd, epsilon=1e-8):
-    grad = cp.zeros_like(x)
-    for i in range(len(x)):
-        x_plus = x.copy()
-        x_minus = x.copy()
-        x_plus[i] += epsilon
-        x_minus[i] -= epsilon
-        f_plus = goal_gradient.objective_function(x_plus, A, lambd)
-        f_minus = goal_gradient.objective_function(x_minus, A, lambd)
-        grad[i] = (f_plus - f_minus) / (2 * epsilon)
-    return grad
-
-
 print("Iteration number, eigenvalue, norm change, constraint violation")
 HYDROGEN_RADIUS = 20.
+N = 201
 ALPHA = 0.282942121052
 
-interval = P.closed(-HYDROGEN_RADIUS, HYDROGEN_RADIUS)
-box_ = box.box3D(interval, interval, interval)
-r = raster.Raster(5)
-xl, yl, zl = r.box_linspaces(box_)
+xl, yl, zl = 
 N = len(xl) * len(yl) * len(zl)
 
 A = H.HamiltonianOperatorCuPy(xl, yl, zl, extent=HYDROGEN_RADIUS)
@@ -230,9 +211,9 @@ A = H.HamiltonianOperatorCuPy(xl, yl, zl, extent=HYDROGEN_RADIUS)
 v_init = cp.random.random((N, 1))
 goal_gradient = GoalGradient(hamiltonian=A, x=v_init)
 
-Y1 = load_basic("../data/h100.cub")
-Y1 = cp.reshape(Y1, (N, 1), )
-lambd = [cp.asarray([[-0.49654406]], dtype=cp.float32)]
+#Y1 = load_basic("../data/h100.cub")
+#Y1 = cp.reshape(Y1, (N, 1), )
+#lambd = [cp.asarray([[-0.49654406]], dtype=cp.float32)]
 ''',
          cp.asarray([[-0.12177081]], dtype=cp.float32),
          cp.asarray([[-0.11862135]], dtype=cp.float32),
@@ -256,14 +237,14 @@ Y7 = Y5.reshape((N,1), )
 Y8 = load_cub("h1xx7.cub")
 Y8 = Y5.reshape((N,1), )
 '''
-Y = [Y1]#, Y2, Y3, Y4, Y5, Y6, Y7, Y8]
+#Y = [Y1]#, Y2, Y3, Y4, Y5, Y6, Y7, Y8]
 
-#Y=None
-#lambd=None 
+Y=None
+lambd=None 
 # Find the lowest five eigenvalues
 start_time = time.time()
-eigenvalues, eigenvectors = find_lowest_eigenvalues(A, v_init, num_eigenvalues=3, lr_x=1e-6, lr_lambda=1e-3,
-                                                    tol=1e-10, max_iter=30000, initial_Y=Y, initial_lambd=lambd)
+eigenvalues, eigenvectors = find_lowest_eigenvalues(A, v_init, num_eigenvalues=3, lr_x=1e-4, lr_lambda=1e-3,
+                                                    tol=1e-8, max_iter=30000, initial_Y=Y, initial_lambd=lambd)
 end_time = time.time()
 
 # Display the results
