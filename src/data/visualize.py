@@ -11,18 +11,13 @@ Z = 1   # Atomic number (Hydrogen)
 a0 = 1  # Bohr radius in AU
 N_1s = 1  # Normalization constant for 1s
 
-# wavefunction_1s = hydrogen_1s(N, Z, a0, N_1s)
-# print(wavefunction_1s.shape)  # Should be (N^3,)
+Phi = load_basic("..\\data\\eigenvector_4.cub").get()
 
+#Phi = hydrogen_2s(N).get()
+#normalizing_factor = Phi.T.dot(Phi)
+#Phi /= normalizing_factor
+#Phi = Phi.reshape((N, N, N))
 
-
-
-# Phi = load_basic("h100.cub").get()
-
-Phi = hydrogen_2s(N, Z, a0, N_1s).get()
-normalizing_factor = Phi.T.dot(Phi)
-Phi /= normalizing_factor
-Phi = Phi.reshape((N, N, N))
 mlab.figure(1, fgcolor=(1, 1, 1), bgcolor=(0, 0, 0))
 # We create a scalar field with the module of Phi as the scalar
 src = mlab.pipeline.scalar_field(np.abs(Phi))
@@ -44,14 +39,36 @@ src2 = mlab.pipeline.set_active_attribute(src,
 
 # Cut isosurfaces of the norm
 contour = mlab.pipeline.contour(src2)
+contour.filter.auto_contours = False  # Disable automatic contours
+contour.filter.number_of_contours = 1  # Set the number of contours
+contour.filter.contours = [7e-5]  # Example contours
 
 # Now we select the 'angle' attribute, ie the phase of Phi
 contour2 = mlab.pipeline.set_active_attribute(contour,
                                     point_scalars='angle')
 
-# And we display the surface. The colormap is the current attribute: the phase.
+# # And we display the surface. The colormap is the current attribute: the phase.
 mlab.pipeline.surface(contour2, colormap='hsv')
 
 mlab.colorbar(title='Phase', orientation='vertical', nb_labels=3)
 
 mlab.show()
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Assuming Phi is your 3D dataset and already reshaped into (N, N, N)
+N = Phi.shape[0]  # Assuming Phi is cubic (N x N x N)
+middle_index = N // 2  # Index for the middle slice
+
+# Take a slice along the desired axis, e.g., the z-axis
+slice_data = np.abs(Phi[:, :, middle_index])  # Taking the magnitude for visualization
+
+# Plot the slice
+# plt.figure(figsize=(8, 6))
+# plt.imshow(slice_data, extent=[0, N, 0, N], origin='lower', cmap='viridis')
+# plt.colorbar(label='|Phi|')  # Add a colorbar for scale
+# plt.title('Middle Slice of the Scalar Field (|Phi|)')
+# plt.xlabel('x')
+# plt.ylabel('y')
+# plt.show()
