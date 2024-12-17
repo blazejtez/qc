@@ -7,71 +7,16 @@ import Praktyki.cut_box_3D as box
 import hamiltonian.hamiltonian as H
 import data_structure.raster as raster
 from data_structure.util_cub import save_basic, load_basic
-
+from goal.rayleigh_constrained import GoalGradient, orthogonalize, gram_schmidt
 ALPHA = 0.28294212105225837470023780155114
-def gram_schmidt(vectors):
-    orthogonal_vectors = []
-    for v in vectors:
-        w = v.copy()
-        for u in orthogonal_vectors:
-            w -= u.dot(u.T.dot(v))
-        w /= cp.linalg.norm(w)
-        orthogonal_vectors.append(w)
-    return orthogonal_vectors
 
-def orthogonalize(x0, eigenvectors):
-    for vec in eigenvectors:
-        x0 -= vec.dot(vec.T.dot(x0))
-    x0 /= cp.linalg.norm(x0)
-    return x0
-
-class GoalGradient():
-    def __init__(self, hamiltonian, x, Y=None):
-        self.hamiltonian = hamiltonian
-        self.x = x
-        self.Y = Y  # Matrix of previously found eigenvectors
-        self.xtAx_cached = None
-        self.xtx_cached = None
-
-    def xtAx(self, x, A):
-        if x is self.x and A is self.hamiltonian and self.xtAx_cached is not None:
-            return self.xtAx_cached
-        self.xtAx_cached = x.T.dot(A.matvec(x))
-        return self.xtAx_cached
-
-    def xtx(self, x):
-        if x is self.x and self.xtx_cached is not None:
-            return self.xtx_cached
-        self.xtx_cached = x.T.dot(x)
-        return self.xtx_cached
-
-    def objective_function(self, x, A, lambd):
-        if self.Y is not None and lambd is not None:
-            return self.xtAx(x, A) / self.xtx(x) + lambd.T.dot(self.Y.T.dot(x))
-        else:
-            return self.xtAx(x, A) / self.xtx(x)
-
-    def gradient_x(self, x, A, lambd):
-        num = 2 * A.matvec(x)
-        denom = self.xtx(x)
-        xtAx_value = self.xtAx(x, A)
-        term1 = (num / denom) - (2 * xtAx_value * x / denom ** 2)
-        if self.Y is not None:
-            term2 = self.Y.dot(lambd)
-            gradient = term1 + term2
-        else:
-            gradient = term1
-        return gradient
-
-    def gradient_lambda(self, x):
-        if self.Y is not None:
-            return self.Y.T.dot(x)
+from goal.wavefunction import hydrogen_2px, hydrogen_1s, hydrogen_2s, hydrogen_2py, hydrogen_2pz
 
 
 def gradient_descent_constrained(goal_gradient, x0, lambd0, lr_x=0.001, lr_lambda=0.1, tol=0.005, max_iter=1000):
     x = x0
     lambd = lambd0
-    A = goal_gradient.hamiltonian
+    A = goal_gradient.A
 
     # Adam optimizer parameters
     beta1 = 0.9
@@ -94,9 +39,9 @@ def gradient_descent_constrained(goal_gradient, x0, lambd0, lr_x=0.001, lr_lambd
         t += 1  # Increment timestep
 
         # Compute gradients
-        grad_x = goal_gradient.gradient_x(x, A, lambd)
+        grad_x = goal_gradient.gradient_x(x, lambd)
         grad_lambda = goal_gradient.gradient_lambda(x)
-        prev_eigenvalue = goal_gradient.objective_function(x,A,lambd)
+        prev_eigenvalue = goal_gradient.objective_function(x, lambd)
         constraint_violation = 0
         if grad_lambda is not None:
             constraint_violation = cp.linalg.norm(goal_gradient.gradient_lambda(x))
@@ -130,7 +75,7 @@ def gradient_descent_constrained(goal_gradient, x0, lambd0, lr_x=0.001, lr_lambd
         x_new = x_new / cp.linalg.norm(x_new)
 
         # Compute the eigenvalue (objective function value)
-        eigenvalue = goal_gradient.objective_function(x_new, A, lambd_new)
+        eigenvalue, x_factor, lambda_factor = goal_gradient.objective_function(x_new, lambd_new)
         '''
         if abs(prev_eigenvalue - eigenvalue) < tol:
             print("Eigenvalue converged:",abs(prev_eigenvalue - eigenvalue) )
@@ -139,12 +84,18 @@ def gradient_descent_constrained(goal_gradient, x0, lambd0, lr_x=0.001, lr_lambd
         '''
 
         # Check convergence
-        if cp.linalg.norm(x_new - x) < tol and (lambd is None or cp.linalg.norm(lambd_new - lambd) < tol):
+        step_x = cp.linalg.norm(x_new - x)
+        if lambd is not None:
+            step_lambda = cp.linalg.norm(lambd_new - lambd)
+        if step_x < tol:
             print(f"Converged at iteration {i}.")
             break
-
-        # Iteration number, eigenvalue, norm change, constraint violation
-        print(f"{i:6d}, {eigenvalue[0, 0]:.7f}, {cp.linalg.norm(x_new - x):.7f}, {constraint_violation:.7f}")
+        if i % 100 == 1 or i == max_iter - 1:
+            # Iteration number, eigenvalue, norm change, constraint violation
+            if lambd is not None:
+                print(f"{i:6d}, {eigenvalue[0, 0]:.7f}, {x_factor[0,0]:.7f}, {lambda_factor[0,0]:.7f}, {step_x:.7f}, {constraint_violation:.7f}")
+            else:
+                print(f"{i:6d}, {eigenvalue[0, 0]:.7f}, {step_x:.7f}")
         # Update variables for next iteration
         x = x_new
         lambd = lambd_new
@@ -161,19 +112,20 @@ def find_lowest_eigenvalues(A, initial_x, num_eigenvalues=5, lr_x=1e-5, lr_lambd
     x0 = initial_x
 
     for i in range(num_eigenvalues):
-
-        # Initialize lambda (Lagrange multipliers) as zeros
-        lambd0 = cp.zeros((len(eigenvectors), 1), dtype=cp.float32) if eigenvectors else cp.zeros((0, 1), dtype=cp.float32)
+        if eigenvalues:
+            lambd0 = cp.array(eigenvalues, dtype=cp.float32).reshape((len(eigenvalues), 1))
+        else:
+            lambd0 = None
         Y = cp.hstack(eigenvectors) if eigenvectors else None
 
         # Create GoalGradient instance with the current Y
-        goal_gradient = GoalGradient(A, x0, Y=Y)
+        goal_gradient = GoalGradient(A, Y=Y)
 
         # Perform constrained gradient descent
         x, lambd = gradient_descent_constrained(goal_gradient, x0, lambd0, lr_x=lr_x, lr_lambda=lr_lambda, tol=tol, max_iter=max_iter)
 
         # Compute the eigenvalue
-        eigenvalue = goal_gradient.objective_function(x, A, lambd)
+        eigenvalue = goal_gradient.objective_function(x, lambd)[1]
 
         # Store the eigenvector and eigenvalue
         eigenvectors.append(x)
@@ -181,7 +133,7 @@ def find_lowest_eigenvalues(A, initial_x, num_eigenvalues=5, lr_x=1e-5, lr_lambd
 
         eigenvectors_path_template = "eigenvector_{i}.cub"
         eigenvalues_path = "eigenvalues.txt"
-        file_path = eigenvectors_path_template.format(i=i + 1)
+        file_path = eigenvectors_path_template.format(i=len(eigenvectors))
 
         save_basic(file_path, cp.asnumpy(eigenvectors[-1].reshape((len(xl), len(yl), len(zl)))))
         with open(eigenvalues_path, "w") as f:
@@ -215,10 +167,10 @@ ALPHA = 0.282942121052
 
 interval = P.closed(-HYDROGEN_RADIUS, HYDROGEN_RADIUS)
 box_ = box.box3D(interval, interval, interval)
-r = raster.Raster(5)
+r = raster.Raster(10)
 xl, yl, zl = r.box_linspaces(box_)
 N = len(xl) * len(yl) * len(zl)
-
+print(len(xl))
 A = H.HamiltonianOperatorCuPy(xl, yl, zl, extent=HYDROGEN_RADIUS)
 
 # X, Y, Z = cp.meshgrid(cp.array(xl), cp.array(yl), cp.array(zl))
@@ -226,28 +178,38 @@ A = H.HamiltonianOperatorCuPy(xl, yl, zl, extent=HYDROGEN_RADIUS)
 # norm_factor = cp.sum(gaussian_orbital ** 2) * A.h ** 3
 # gaussian_orbital /= cp.sqrt(norm_factor)
 
-# v_init = cp.reshape(gaussian_orbital, (len(X) * len(Y) * len(Z), 1))
-v_init = cp.random.random((N, 1))
-goal_gradient = GoalGradient(hamiltonian=A, x=v_init)
+h_1s = hydrogen_1s(len(xl), HYDROGEN_RADIUS)
+# h_2s = hydrogen_2s(len(xl), HYDROGEN_RADIUS)
+# h_2px = hydrogen_2px(len(xl), HYDROGEN_RADIUS)
+h2_py = hydrogen_2py(len(xl), HYDROGEN_RADIUS)
+h2_pz = hydrogen_2pz(len(xl), HYDROGEN_RADIUS)
 
-Y1 = load_basic("../data/h100.cub")
-Y1 = cp.reshape(Y1, (N, 1), )
-lambd = [cp.asarray([[-0.49654406]], dtype=cp.float32)]
-''',
-         cp.asarray([[-0.12177081]], dtype=cp.float32),
-         cp.asarray([[-0.11862135]], dtype=cp.float32),
+
+# v_init = cp.reshape(gaussian_orbital, (len(X) * len(Y) * len(Z), 1))
+#v_init = cp.random.random((N, 1))
+
+
+# Y1 = load_basic("../data/h100.cub")
+# Y1 = cp.reshape(Y1, (N, 1), )
+lambd = [cp.asarray([[-0.49857717]], dtype=cp.float32),
+         cp.asarray([[-0.1251940]], dtype=cp.float32),
+         cp.asarray([[-0.12494146]], dtype=cp.float32)
+         ]
+'''
+         cp.asarray([[-0.4985772]], dtype=cp.float32),
          cp.asarray([[-0.12432906]], dtype=cp.float32),
          cp.asarray([[-0.12279524]], dtype=cp.float32),
          cp.asarray([[-0.02790804]], dtype=cp.float32),
          cp.asarray([[-0.03419532]], dtype=cp.float32),
-     
-Y2 = load_cub("h1xx.cub")
-Y2 = Y2.reshape((N,1), )
-Y3 = load_cub("h1xx2.cub")
-Y3 = Y3.reshape((N,1), )
-Y4 = load_cub("h1xx3.cub")
-Y4 = Y4.reshape((N,1), )
-Y5 = load_cub("h1xx4.cub")
+'''
+# Y1 = load_basic("eigenvector_1.cub")
+# Y1 = Y1.reshape((N,1), )
+# Y2 = load_basic("eigenvector_2.cub")
+# Y2 = Y2.reshape((N,1), )
+# Y3 = load_basic("eigenvector_3.cub")
+# Y3 = Y3.reshape((N,1), )
+
+'''Y5 = load_cub("h1xx4.cub")
 Y5 = Y5.reshape((N,1), )
 Y6 = load_cub("h1xx5.cub")
 Y6 = Y5.reshape((N,1), )
@@ -256,14 +218,16 @@ Y7 = Y5.reshape((N,1), )
 Y8 = load_cub("h1xx7.cub")
 Y8 = Y5.reshape((N,1), )
 '''
-Y = [Y1]#, Y2, Y3, Y4, Y5, Y6, Y7, Y8]
+# Y = [Y1, Y2, Y3]
+
+goal_gradient = GoalGradient(A=A, Y=None)
 
 #Y=None
-#lambd=None 
+#lambd=None
 # Find the lowest five eigenvalues
 start_time = time.time()
-eigenvalues, eigenvectors = find_lowest_eigenvalues(A, v_init, num_eigenvalues=3, lr_x=1e-6, lr_lambda=1e-3,
-                                                    tol=1e-10, max_iter=30000, initial_Y=Y, initial_lambd=lambd)
+eigenvalues, eigenvectors = find_lowest_eigenvalues(A, h_1s, num_eigenvalues=4, lr_x=1e-6, lr_lambda=1e-2, # e-3 dla pierwszych 3 wartosci
+                                                    tol=1e-5, max_iter=10000, initial_Y=None, initial_lambd=None)
 end_time = time.time()
 
 # Display the results

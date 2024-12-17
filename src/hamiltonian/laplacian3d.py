@@ -41,7 +41,52 @@ _eval_laplacian3d_7pts_stencil_kernel = cp.RawKernel(
     'test',
     backend='nvcc')
 
-#
+_eval_laplacian3d_19pts_stencil_kernel = cp.RawKernel(
+    r'''extern "C" __global__ void laplacian_19pt(cudaTextureObject_t texture_input,
+                                                 cudaSurfaceObject_t surface_output, 
+                                                 int XLEN, int YLEN, int ZLEN, float h) 
+{
+    int idx_x = threadIdx.x + blockIdx.x * blockDim.x;
+    int idx_y = threadIdx.y + blockIdx.y * blockDim.y;
+    int idx_z = threadIdx.z + blockIdx.z * blockDim.z;
+
+    if (idx_x >= XLEN || idx_y >= YLEN || idx_z >= ZLEN) return;
+
+    float value = -24 * tex3D<float>(texture_input, idx_x, idx_y, idx_z);
+
+    value += 2 * (idx_x > 0 ? tex3D<float>(texture_input, idx_x - 1, idx_y, idx_z) : 0);
+    value += 2 * (idx_x < XLEN - 1 ? tex3D<float>(texture_input, idx_x + 1, idx_y, idx_z) : 0);
+    value += 2 * (idx_y > 0 ? tex3D<float>(texture_input, idx_x, idx_y - 1, idx_z) : 0);
+    value += 2 * (idx_y < YLEN - 1 ? tex3D<float>(texture_input, idx_x, idx_y + 1, idx_z) : 0);
+    value += 2 * (idx_z > 0 ? tex3D<float>(texture_input, idx_x, idx_y, idx_z - 1) : 0);
+    value += 2 * (idx_z < ZLEN - 1 ? tex3D<float>(texture_input, idx_x, idx_y, idx_z + 1) : 0);
+
+    value += 1 * ((idx_x > 0 && idx_y > 0) ? tex3D<float>(texture_input, idx_x - 1, idx_y - 1, idx_z) : 0);
+    value += 1 * ((idx_x > 0 && idx_y < YLEN - 1) ? tex3D<float>(texture_input, idx_x - 1, idx_y + 1, idx_z) : 0);
+    value += 1 * ((idx_x > 0 && idx_z > 0) ? tex3D<float>(texture_input, idx_x - 1, idx_y, idx_z - 1) : 0);
+    value += 1 * ((idx_x > 0 && idx_z < ZLEN - 1) ? tex3D<float>(texture_input, idx_x - 1, idx_y, idx_z + 1) : 0);
+
+    value += 1 * ((idx_x < XLEN - 1 && idx_y > 0) ? tex3D<float>(texture_input, idx_x + 1, idx_y - 1, idx_z) : 0);
+    value += 1 * ((idx_x < XLEN - 1 && idx_y < YLEN - 1) ? tex3D<float>(texture_input, idx_x + 1, idx_y + 1, idx_z) : 0);
+    value += 1 * ((idx_x < XLEN - 1 && idx_z > 0) ? tex3D<float>(texture_input, idx_x + 1, idx_y, idx_z - 1) : 0);
+    value += 1 * ((idx_x < XLEN - 1 && idx_z < ZLEN - 1) ? tex3D<float>(texture_input, idx_x + 1, idx_y, idx_z + 1) : 0);
+
+    value += 1 * ((idx_y > 0 && idx_z > 0) ? tex3D<float>(texture_input, idx_x, idx_y - 1, idx_z - 1) : 0);
+    value += 1 * ((idx_y > 0 && idx_z < ZLEN - 1) ? tex3D<float>(texture_input, idx_x, idx_y - 1, idx_z + 1) : 0);
+    value += 1 * ((idx_y < YLEN - 1 && idx_z > 0) ? tex3D<float>(texture_input, idx_x, idx_y + 1, idx_z - 1) : 0);
+    value += 1 * ((idx_y < YLEN - 1 && idx_z < ZLEN - 1) ? tex3D<float>(texture_input, idx_x, idx_y + 1, idx_z + 1) : 0);
+
+    value *= (1.0f / (6.0f * h * h));
+
+    surf3Dwrite<float>(value, surface_output, idx_x * sizeof(float), idx_y, idx_z);
+}
+    ''',
+    'laplacian_19pt',
+    backend='nvcc'
+)
+
+
+
 _eval_laplacian3d_27pts_stencil_kernel_2 = cp.RawKernel(
     r'''extern "C" __global__ void test(cudaTextureObject_t texture_input,
                                         cudaSurfaceObject_t surface_output, int XLEN, int YLEN, int ZLEN,
@@ -123,6 +168,8 @@ _eval_laplacian3d_27pts_stencil_kernel_2 = cp.RawKernel(
                                  }''',
     'test',
     backend='nvcc')
+
+
 _eval_laplacian3d_27pts_stencil_kernel = cp.RawKernel(
     r'''extern "C" __global__ void test(cudaTextureObject_t texture_input,
                                        cudaSurfaceObject_t surface_output,
@@ -171,8 +218,8 @@ class Laplacian3D:
     def __init__(self, h: np.float32 = 1.):
         self.h = h
         _eval_laplacian3d_7pts_stencil_kernel.compile()
-        _eval_laplacian3d_27pts_stencil_kernel.compile()
         _eval_laplacian3d_27pts_stencil_kernel_2.compile()
+        _eval_laplacian3d_19pts_stencil_kernel.compile()
 
     def matcube(self, cube: np.ndarray, stencil: Dict[Tuple[int, int, int],
     float]) -> np.ndarray:
@@ -199,6 +246,24 @@ class Laplacian3D:
         ylen = texture.ResDesc.cuArr.height
         zlen = texture.ResDesc.cuArr.depth
         _eval_laplacian3d_7pts_stencil_kernel(
+            (np.int32(np.ceil(float(xlen) / Laplacian3D.BLOCKSIZE)),
+             np.int32(np.ceil(float(ylen) / Laplacian3D.BLOCKSIZE)),
+             np.int32(np.ceil(float(zlen) / Laplacian3D.BLOCKSIZE))),
+            (Laplacian3D.BLOCKSIZE, Laplacian3D.BLOCKSIZE, Laplacian3D.BLOCKSIZE), (
+                texture,
+                surface,
+                xlen,
+                xlen,
+                zlen,
+                np.float32(self.h)
+            ))
+        return surface
+
+    def matcube_cupy_19(self, texture, surface):
+        xlen = texture.ResDesc.cuArr.width
+        ylen = texture.ResDesc.cuArr.height
+        zlen = texture.ResDesc.cuArr.depth
+        _eval_laplacian3d_19pts_stencil_kernel(
             (np.int32(np.ceil(float(xlen) / Laplacian3D.BLOCKSIZE)),
              np.int32(np.ceil(float(ylen) / Laplacian3D.BLOCKSIZE)),
              np.int32(np.ceil(float(zlen) / Laplacian3D.BLOCKSIZE))),
@@ -302,7 +367,7 @@ class Laplacian3D:
 
 if __name__ == "__main__":
     # Step 3: Create input data
-    XLEN, YLEN, ZLEN = 200, 200, 200  # Dimensions of the input arrays and grid
+    XLEN, YLEN, ZLEN = 601, 601, 601  # Dimensions of the input arrays and grid
     eps = 1e-10  # Small epsilon to prevent division by zero
     extent = 10.0  # Extent of the grid in Bohr radii
 
@@ -315,7 +380,7 @@ if __name__ == "__main__":
     hx = xl[1] - xl[0]
     print(hx)
     X, Y, Z = cp.meshgrid(cp.array(xl), cp.array(yl), cp.array(zl))
-    gaussian_orbital = cp.exp(-ALPHA * (X ** 2 + Y ** 2 + Z ** 2), dtype=cp.float32)
+    gaussian_orbital = cp.exp(-1*(X ** 2 + Y ** 2 + Z ** 2), dtype=cp.float32)
 
     tex_obj = T.Texture3D(len(xl),len(yl),len(zl))
     sur_obj = S.Surface(len(xl),len(yl),len(zl))
@@ -333,22 +398,36 @@ if __name__ == "__main__":
     result = sur_obj.get_data(init_sur)  # Move the result back to host (CPU) for inspection
     result_cpu = cp.asnumpy(result)
 
-    # Calculate analytical solution of laplacian for comparison
-    Hv = plot_laplacian_gto(ALPHA, XLEN, extent)
-    Hv = Hv.reshape((XLEN*YLEN*ZLEN,1))
-    v = gaussian_orbital.flatten()
-    vtv = v.T.dot(v)
-    vtHv = v.T.dot(Hv)
-    print(vtHv/vtv)
+    # # Calculate analytical solution of laplacian for comparison
+    # Hv = plot_laplacian_gto(ALPHA, XLEN, extent)
+    # Hv = Hv.reshape((XLEN*YLEN*ZLEN,1))
+    # v = gaussian_orbital.flatten()
+    # vtv = v.T.dot(v)
+    # vtHv = v.T.dot(Hv)
+    # print(vtHv/vtv)
+    from matplotlib import pyplot as plt
+
+    plt.figure(figsize=(8, 6))  # Set figure size
+    plt.plot(np.sum(np.sum(result_cpu, axis=1), axis=1))  # Plot the data
+    plt.xlabel('Grid steps, 1 bohr radius=30 grid steps')
+    plt.ylabel('Laplacian value a.u.')
+    plt.savefig('laplacian1d.png', bbox_inches='tight')
+
+    # plt.figure()
+    # plt.plot(result_cpu[250][300])
+    # plt.title(f'Laplacian 1D slice')
+    # plt.xlabel('Grid steps, 1 bohr radius=30 grid steps')
+    # plt.ylabel('Laplacian value a.u.')
+    # plt.show()
 
     #
     # plt.figure()
-    # plt.plot(result_cpu.sum(axis=0).sum(axis=0) - analytical_laplacian.sum(axis=0).sum(axis=0).get())
+    # plt.plot(result_cpu.sum(axis=0).sum(axis=0) - Hv.sum(axis=0).sum(axis=0).get())
     # plt.title(f'Difference between FDM laplacian and analytical laplacian')
     # plt.xlabel('X axis')
     # plt.ylabel('Y axis')
     # plt.show()
-    #
+
     # # Print the result for inspection
     # plt.figure(figsize=(64, 64))
     # plt.imshow(result_cpu.sum(axis=0), cmap='viridis', origin='lower')
@@ -381,6 +460,3 @@ if __name__ == "__main__":
     # plt.xlabel('X axis')
     # plt.ylabel('Y axis')
     # plt.show()
-
-
-

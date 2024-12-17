@@ -105,7 +105,7 @@ class HamiltonianOperatorCuPy:
         v1 = self.post(potential)
 
         tex_obj, sur_obj = self.pre(v)
-        laplacian = self.laplacian.matcube_cupy_27(tex_obj, sur_obj)
+        laplacian = self.laplacian.matcube_cupy_19(tex_obj, sur_obj)
         v2 = self.post(laplacian)
         # print("kinetic part: ", cp.sum(v1))
         # print("potential part: ", cp.sum(v2))
