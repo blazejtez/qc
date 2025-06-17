@@ -1,1 +1,13 @@
 **/__pycache__
+**/misc
+**/dist
+**/build
+**/src/Praktyki
+**/src/qcpp
+**/qc.egg-info 
+*.png
+*.pdf
+*.log
+*.so
+/.idea/
+/Praktyki/
