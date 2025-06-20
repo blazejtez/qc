@@ -1,6 +1,0 @@
-[submodule "src/Praktyki"]
-	path = src/Praktyki
-	url = https://github.com/KolRobOsk/Praktyki.git
-[submodule "src/qcpp"]
-	path = src/qcpp
-	url = git@cruncher:qcpp
